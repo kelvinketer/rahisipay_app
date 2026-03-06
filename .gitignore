@@ -47,3 +47,15 @@ app.*.map.json
 # Keystore files
 android/key.properties
 android/app/upload-keystore.jks
+
+# Catch-all for any future keystore files, regardless of name or location
+*.jks
+*.keystore
+
+# Environment variables and secret API keys
+.env
+.env.*
+
+# Firebase/Google Services configuration (often contains sensitive API keys)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist

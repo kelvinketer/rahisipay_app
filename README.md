@@ -1,7 +1,7 @@
 # 🌾 Rahisi Agro Pay (Oletai Agri Finance)
 **Empowering the Next Generation of African Agri-preneurs through Frictionless Digital Finance.**
 
-[![Flutter Build CI](https://github.com/YOUR_USERNAME/rahisipay_app/actions/workflows/flutter-build.yml/badge.svg)](https://github.com/YOUR_USERNAME/rahisipay_app/actions)
+[![Flutter Build CI](https://github.com/kelvinketer/rahisipay_app/actions/workflows/flutter-build.yml/badge.svg)](https://github.com/kelvinketer/rahisipay_app/actions)
 
 ---
 
@@ -29,7 +29,7 @@ By turning a smartphone into a "Digital Tractor," we allow youth to walk into an
 ---
 
 ## 📦 Getting Started for Testers
-1.  **Download the APK:** Navigate to the [Actions Tab](https://github.com/YOUR_USERNAME/rahisipay_app/actions), click the latest successful build, and download the `rahisipay-debug-apk`.
+1.  **Download the APK:** Navigate to the [Actions Tab](https://github.com/kelvinketer/rahisipay_app/actions), click the latest successful build, and download the `rahisipay-debug-apk`.
 2.  **Install:** Transfer the `.apk` to your Android device and allow "Install from Unknown Sources."
 3.  **Login:** Enter your M-Pesa number to receive a secure 4-digit PIN.
 
@@ -40,7 +40,7 @@ If you want to contribute to the Agri-Tech revolution:
 
 1.  **Clone the Repo:**
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/rahisipay_app.git](https://github.com/YOUR_USERNAME/rahisipay_app.git)
+    git clone [https://github.com/kelvinketer/rahisipay_app.git](https://github.com/kelvinketer/rahisipay_app.git)
     ```
 2.  **Install Dependencies:**
     ```bash

@@ -1328,7 +1328,12 @@ class _AgentPortalScreenState extends State<AgentPortalScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.get(Uri.parse('https://rahisipay-api.onrender.com/api/v1/agent/stats/$formattedPhone'));
+      // Safely URL-Encode the phone number to preserve the '+' sign
+      final String encodedPhone = Uri.encodeComponent(formattedPhone);
+      
+      final response = await http.get(
+        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agent/stats/$encodedPhone')
+      ).timeout(const Duration(seconds: 30)); 
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1338,15 +1343,17 @@ class _AgentPortalScreenState extends State<AgentPortalScreen> {
           )));
         }
       } else if (response.statusCode == 404) {
-        // Agent not found -> Go to Registration
+        // Agent not found -> Route to Registration perfectly
         if (mounted) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AgentRegistrationScreen(phoneNumber: formattedPhone)));
         }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Server Status: ${response.statusCode}'), backgroundColor: Colors.red));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error. Is Render awake?')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Network Error: $e'), backgroundColor: Colors.red));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

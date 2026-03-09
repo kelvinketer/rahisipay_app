@@ -1,6 +1,7 @@
+import 'login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; 
-import 'dart:convert';                   
+import 'dart:convert';                    
 
 void main() {
   runApp(const RahisiAgroPayApp());
@@ -19,14 +20,15 @@ class RahisiAgroPayApp extends StatelessWidget {
         fontFamily: 'Roboto', 
         scaffoldBackgroundColor: const Color(0xFFF4F7F6), // Premium cool off-white
       ),
-      home: const FrictionlessLoginScreen(), 
+      // --- UPDATED: Now points to your new Glassmorphic UI ---
+      home: LoginScreen(), 
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 // ==========================================
-// 1. FRICTIONLESS LOGIN SCREEN (PRODUCTION)
+// 1. OLD LOGIN SCREEN (KEPT FOR OTP LOGIC REFERENCE)
 // ==========================================
 class FrictionlessLoginScreen extends StatefulWidget {
   const FrictionlessLoginScreen({super.key});
@@ -132,113 +134,7 @@ class _FrictionlessLoginScreenState extends State<FrictionlessLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 60),
-              Center(child: Image.asset('assets/images/oletai_logo.png', height: 80, errorBuilder: (context, error, stackTrace) => const Icon(Icons.account_balance, size: 80, color: Color(0xFF0C462B)))),
-              const SizedBox(height: 60),
-              
-              if (!_isOtpSent) ...[
-                const Text('Sign In', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Color(0xFF0C462B), letterSpacing: -1)),
-                const SizedBox(height: 8),
-                const Text('Enter your M-Pesa number to continue.', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                const SizedBox(height: 40),
-                
-                TextField(
-                  controller: _phoneController, 
-                  keyboardType: TextInputType.phone, 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number',
-                    hintText: '+254 7XX XXX XXX', 
-                    helperText: 'Please start with +254', 
-                    helperStyle: const TextStyle(color: Color(0xFF0C462B), fontWeight: FontWeight.w500),
-                    prefixIcon: Icon(Icons.phone_android, color: Colors.grey[400]), 
-                    filled: true, 
-                    fillColor: const Color(0xFFF4F7F6), 
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)
-                  )
-                ),
-                const SizedBox(height: 40),
-                
-                SizedBox(
-                  width: double.infinity,
-                  height: 64,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C462B), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
-                    onPressed: _isLoading ? null : _sendOtp,
-                    child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                ),
-              ] else ...[
-                const Text('Verify', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Color(0xFF0C462B), letterSpacing: -1)),
-                const SizedBox(height: 8),
-                Text('We sent a secure code to\n${_phoneController.text}', style: const TextStyle(fontSize: 16, color: Colors.grey)),
-                const SizedBox(height: 40),
-                
-                TextField(
-                  controller: _otpController, 
-                  keyboardType: TextInputType.number, 
-                  maxLength: 4, 
-                  textAlign: TextAlign.center, 
-                  style: const TextStyle(fontSize: 36, letterSpacing: 24, fontWeight: FontWeight.w900), 
-                  decoration: InputDecoration(
-                    counterText: "", 
-                    filled: true, 
-                    fillColor: const Color(0xFFF4F7F6), 
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)
-                  )
-                ),
-                const SizedBox(height: 40),
-                
-                SizedBox(
-                  width: double.infinity,
-                  height: 64,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C462B), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
-                    onPressed: _isLoading ? null : _verifyOtp,
-                    child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify PIN', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Center(child: TextButton(onPressed: () { setState(() { _isOtpSent = false; }); }, child: const Text('Change Phone Number', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)))),
-              ],
-              
-              // --- QUICK LINKS FOR AGROVETS & AGENTS ---
-              const SizedBox(height: 40),
-              Center(
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetRegistrationScreen())),
-                      child: const Text(
-                        'Are you an Agrovet? Register here.',
-                        style: TextStyle(color: Color(0xFF0C462B), fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentPortalScreen())),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(color: Colors.deepOrange.shade50, borderRadius: BorderRadius.circular(20)),
-                        child: const Text('Access AgriCo Agent Portal', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w900)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const Scaffold(body: Center(child: Text("Old Login Screen")));
   }
 }
 

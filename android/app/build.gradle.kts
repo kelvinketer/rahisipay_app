@@ -43,7 +43,7 @@ android {
 
     defaultConfig {
         applicationId = "com.oletaiagro.rahisiagropay"
-        minSdk = flutter.minSdkVersion
+        minSdk = 24  // <--- THIS IS THE MAGIC FIX 🚀
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

@@ -26,7 +26,7 @@ class RahisiAgroPayApp extends StatelessWidget {
 }
 
 // ==========================================
-// 1. FRICTIONLESS LOGIN SCREEN 
+// 1. FRICTIONLESS LOGIN SCREEN (PRODUCTION)
 // ==========================================
 class FrictionlessLoginScreen extends StatefulWidget {
   const FrictionlessLoginScreen({super.key});
@@ -47,12 +47,32 @@ class _FrictionlessLoginScreenState extends State<FrictionlessLoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your M-Pesa number'), backgroundColor: Colors.red));
       return;
     }
+
+    // --- THE 10X AUTO-FORMATTER ---
+    String rawPhone = _phoneController.text.trim().replaceAll(' ', '');
+    String formattedPhone = rawPhone;
+
+    if (rawPhone.startsWith('0')) {
+      formattedPhone = '+254${rawPhone.substring(1)}';
+    } else if (rawPhone.startsWith('254')) {
+      formattedPhone = '+$rawPhone';
+    } else if (rawPhone.startsWith('7') || rawPhone.startsWith('1')) {
+      formattedPhone = '+254$rawPhone';
+    }
+
+    if (formattedPhone.length != 13) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid 10-digit Kenyan number'), backgroundColor: Colors.orange));
+      return;
+    }
+    // --- END AUTO-FORMATTER ---
+
     setState(() => _isLoading = true);
+    
     try {
       final response = await http.post(
         Uri.parse('https://rahisipay-api.onrender.com/api/v1/auth/send-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"phone_number": _phoneController.text}),
+        body: jsonEncode({"phone_number": formattedPhone}),
       );
       if (response.statusCode == 200) {
         setState(() => _isOtpSent = true); 
@@ -69,19 +89,32 @@ class _FrictionlessLoginScreenState extends State<FrictionlessLoginScreen> {
 
   Future<void> _verifyOtp() async {
     if (_otpController.text.isEmpty) return;
+
+    // --- APPLY THE SAME FORMATTER FOR VERIFICATION ---
+    String rawPhone = _phoneController.text.trim().replaceAll(' ', '');
+    String formattedPhone = rawPhone;
+    if (rawPhone.startsWith('0')) {
+      formattedPhone = '+254${rawPhone.substring(1)}';
+    } else if (rawPhone.startsWith('254')) {
+      formattedPhone = '+$rawPhone';
+    } else if (rawPhone.startsWith('7') || rawPhone.startsWith('1')) {
+      formattedPhone = '+254$rawPhone';
+    }
+
     setState(() => _isLoading = true);
+    
     try {
       final response = await http.post(
         Uri.parse('https://rahisipay-api.onrender.com/api/v1/auth/verify-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"phone_number": _phoneController.text, "otp_code": _otpController.text}),
+        body: jsonEncode({"phone_number": formattedPhone, "otp_code": _otpController.text}),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
         if (mounted) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(
-            farmerPhone: _phoneController.text, 
+            farmerPhone: formattedPhone, 
             trustScore: (data['score'] ?? 0).toDouble(), 
             creditLimit: data['limit'] ?? 0,
             isProfileComplete: data['is_new_user'] == false, 
@@ -123,7 +156,9 @@ class _FrictionlessLoginScreenState extends State<FrictionlessLoginScreen> {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
                     labelText: 'Phone Number',
-                    hintText: '0712 345 678', 
+                    hintText: '+254 7XX XXX XXX', 
+                    helperText: 'Please start with +254', 
+                    helperStyle: const TextStyle(color: Color(0xFF0C462B), fontWeight: FontWeight.w500),
                     prefixIcon: Icon(Icons.phone_android, color: Colors.grey[400]), 
                     filled: true, 
                     fillColor: const Color(0xFFF4F7F6), 
@@ -174,6 +209,31 @@ class _FrictionlessLoginScreenState extends State<FrictionlessLoginScreen> {
                 const SizedBox(height: 20),
                 Center(child: TextButton(onPressed: () { setState(() { _isOtpSent = false; }); }, child: const Text('Change Phone Number', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)))),
               ],
+              
+              // --- QUICK LINKS FOR AGROVETS & AGENTS ---
+              const SizedBox(height: 40),
+              Center(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetRegistrationScreen())),
+                      child: const Text(
+                        'Are you an Agrovet? Register here.',
+                        style: TextStyle(color: Color(0xFF0C462B), fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentPortalScreen())),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(color: Colors.deepOrange.shade50, borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Access AgriCo Agent Portal', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -201,7 +261,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final TextEditingController _segmentUnitController = TextEditingController();   
   
   bool _isLoading = false;
-  bool _agreedToTerms = false; // The Play Store Checkbox
+  bool _agreedToTerms = false; 
 
   Future<void> _submitProfile() async {
     if (!_agreedToTerms) {
@@ -214,6 +274,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
 
     setState(() => _isLoading = true);
+    
     try {
       final response = await http.post(
         Uri.parse('https://rahisipay-api.onrender.com/api/v1/apply-loan'),
@@ -314,7 +375,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               
               const SizedBox(height: 30),
 
-              // THE COMPLIANCE CHECKBOX
               Row(
                 children: [
                   Checkbox(
@@ -442,7 +502,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- HEADER GREETING ---
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                       child: Row(
@@ -471,7 +530,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // --- THE VIRTUAL CARD ---
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 24),
                       padding: const EdgeInsets.all(28),
@@ -511,7 +569,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // --- CIRCULAR QUICK ACTIONS ---
                     if (widget.isProfileComplete) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -528,7 +585,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                     const SizedBox(height: 35),
 
-                    // --- PROGRESSIVE PROFILING INSIGHT BANNER ---
                     if (!widget.isProfileComplete) ...[
                       GestureDetector(
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileCompletionScreen(phoneNumber: widget.farmerPhone))),
@@ -559,7 +615,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ] else ...[
-                      // FULL DASHBOARD CONTENT 
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0),
                         child: Column(
@@ -617,7 +672,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           
-          // --- FLOATING PILL NAV BAR ---
           Positioned(
             bottom: 24, left: 24, right: 24,
             child: Container(
@@ -633,7 +687,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildNavItem(Icons.grid_view_rounded, true),
                   _buildNavItem(Icons.account_balance_wallet_outlined, false),
                   
-                  // Prominent Center Action
                   GestureDetector(
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MarketplaceScreen(farmerPhone: widget.farmerPhone))),
                     child: Container(
@@ -659,8 +712,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-
-  // --- PREMIUM UI HELPERS ---
 
   Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
@@ -764,7 +815,7 @@ class MarketplaceScreen extends StatelessWidget {
 }
 
 // ==========================================
-// 5. CHECKOUT SCREEN
+// 5. CHECKOUT SCREEN (WITH AUTOCOMPLETE)
 // ==========================================
 class CheckoutScreen extends StatefulWidget {
   final String farmerPhone;
@@ -777,12 +828,49 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  final TextEditingController _tillController = TextEditingController();
+  String? _selectedTill;
   bool _isProcessing = false;
+  bool _isLoadingAgrovets = true;
+  List<Map<String, dynamic>> _agrovets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAgrovets();
+  }
+
+  Future<void> _fetchAgrovets() async {
+    try {
+      final response = await http.get(Uri.parse('https://rahisipay-api.onrender.com/api/v1/agrovets'));
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _agrovets = List<Map<String, dynamic>>.from(data);
+          _isLoadingAgrovets = false;
+        });
+      } else {
+        _loadFallbackAgrovets();
+      }
+    } catch (e) {
+      _loadFallbackAgrovets();
+    }
+  }
+
+  void _loadFallbackAgrovets() {
+    setState(() {
+      _agrovets = [
+        {"name": "Oletai Farm Inputs", "till_number": "888222", "location": "Nairobi"},
+        {"name": "Central Seed Co.", "till_number": "112233", "location": "Kiambu"},
+        {"name": "Rift Valley Agrovet", "till_number": "999888", "location": "Nakuru"},
+      ];
+      _isLoadingAgrovets = false;
+    });
+  }
 
   Future<void> _disburseFunds() async {
-    if (_tillController.text.length < 5) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid Merchant Till Number'), backgroundColor: Colors.red));
+    if (_selectedTill == null || _selectedTill!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please search for and select a verified Agrovet'), backgroundColor: Colors.red));
       return;
     }
     setState(() { _isProcessing = true; });
@@ -792,7 +880,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"phone_number": widget.farmerPhone, "till_number": _tillController.text, "amount_kes": widget.price}),
+        body: jsonEncode({"phone_number": widget.farmerPhone, "till_number": _selectedTill, "amount_kes": widget.price}),
       );
 
       if (response.statusCode == 200) {
@@ -819,7 +907,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             const Text('Payment Successful!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: -0.5)),
             const SizedBox(height: 16),
-            Text('KES ${widget.price} sent to Till ${_tillController.text}.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey)),
+            Text('KES ${widget.price} sent to Till $_selectedTill.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey)),
           ],
         ),
         actions: [
@@ -860,9 +948,81 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            const Text('Agrovet Till / Paybill', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black87)),
+            
+            const Text('Search Agrovet Till / Name', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black87)),
             const SizedBox(height: 12),
-            TextField(controller: _tillController, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: 'e.g. 123456', prefixIcon: Icon(Icons.store, color: Colors.grey[400]), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none))),
+            
+            _isLoadingAgrovets 
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF0C462B)))
+              : LayoutBuilder(
+                  builder: (context, constraints) => Autocomplete<Map<String, dynamic>>(
+                    displayStringForOption: (option) => option['till_number'],
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<Map<String, dynamic>>.empty();
+                      }
+                      return _agrovets.where((agrovet) {
+                        final till = agrovet['till_number'].toString().toLowerCase();
+                        final name = agrovet['name'].toString().toLowerCase();
+                        final query = textEditingValue.text.toLowerCase();
+                        return till.contains(query) || name.contains(query);
+                      });
+                    },
+                    onSelected: (Map<String, dynamic> selection) {
+                      setState(() {
+                        _selectedTill = selection['till_number'];
+                      });
+                      FocusScope.of(context).unfocus(); 
+                    },
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. 888222 or Oletai',
+                          prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                        ),
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 8.0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          child: SizedBox(
+                            width: constraints.biggest.width,
+                            height: 200, 
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              itemCount: options.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final option = options.elementAt(index);
+                                return ListTile(
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+                                    child: const Icon(Icons.storefront, color: Color(0xFF0C462B), size: 20),
+                                  ),
+                                  title: Text(option['name'], style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.black87)),
+                                  subtitle: Text('Till: ${option['till_number']} • ${option['location']}', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500)),
+                                  onTap: () {
+                                    onSelected(option);
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
             const SizedBox(height: 40),
             Container(
               padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
@@ -1024,6 +1184,446 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black87)), const SizedBox(height: 4), Text(date, style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w500))])),
           Text(amount, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5, color: isCredit ? Colors.green[700] : Colors.black87)),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 7. AGROVET / MERCHANT REGISTRATION
+// ==========================================
+class AgrovetRegistrationScreen extends StatefulWidget {
+  const AgrovetRegistrationScreen({super.key});
+
+  @override
+  State<AgrovetRegistrationScreen> createState() => _AgrovetRegistrationScreenState();
+}
+
+class _AgrovetRegistrationScreenState extends State<AgrovetRegistrationScreen> {
+  final TextEditingController _businessNameController = TextEditingController();
+  final TextEditingController _tillController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  bool _isLoading = false;
+
+  // --- UPDATED STRICT REGISTRATION FUNCTION ---
+  Future<void> _registerAgrovet() async {
+    if (_businessNameController.text.isEmpty || _tillController.text.isEmpty || _locationController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields'), backgroundColor: Colors.red));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agrovets/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "business_name": _businessNameController.text,
+          "till_number": _tillController.text,
+          "owner_phone": _phoneController.text,
+          "location": _locationController.text,
+        }),
+      );
+
+      // Check for success status from FastAPI
+      if (response.statusCode == 200) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Registration Successful', style: TextStyle(color: Color(0xFF0C462B), fontWeight: FontWeight.bold)),
+              content: Text('${_businessNameController.text} is now registered on RahisiPay.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Go back to login screen
+                  }, 
+                  child: const Text('Done', style: TextStyle(color: Color(0xFF0C462B)))
+                )
+              ],
+            ),
+          );
+        }
+      } else {
+        // Report backend validation errors (e.g., Duplicate Till Number)
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: ${errorData['detail'] ?? "Backend rejected registration"}'), 
+          backgroundColor: Colors.red
+        ));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error: Check if Render is awake'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0, leading: const BackButton(color: Colors.black)),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Partner with Us', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF0C462B), letterSpacing: -1)),
+              const SizedBox(height: 8),
+              const Text('Register your Agrovet to start receiving direct payments from RahisiPay farmers.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 40),
+              
+              TextField(controller: _businessNameController, decoration: InputDecoration(labelText: 'Registered Business Name', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none))),
+              const SizedBox(height: 16),
+              TextField(controller: _tillController, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'M-Pesa Till / Paybill Number', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none))),
+              const SizedBox(height: 16),
+              TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Owner Phone Number', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none))),
+              const SizedBox(height: 16),
+              TextField(controller: _locationController, decoration: InputDecoration(labelText: 'Location / Town (e.g., Nairobi)', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none))),
+              const SizedBox(height: 40),
+              
+              SizedBox(
+                width: double.infinity, height: 64,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C462B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
+                  onPressed: _isLoading ? null : _registerAgrovet,
+                  child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Register Agrovet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 8. AGENT PORTAL (ROUTER)
+// ==========================================
+class AgentPortalScreen extends StatefulWidget {
+  const AgentPortalScreen({super.key});
+  @override State<AgentPortalScreen> createState() => _AgentPortalScreenState();
+}
+
+class _AgentPortalScreenState extends State<AgentPortalScreen> {
+  final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _checkAgentStatus() async {
+    if (_phoneController.text.isEmpty) return;
+    
+    // Apply Auto-formatter
+    String rawPhone = _phoneController.text.trim().replaceAll(' ', '');
+    String formattedPhone = rawPhone;
+    if (rawPhone.startsWith('0')) formattedPhone = '+254${rawPhone.substring(1)}';
+    else if (rawPhone.startsWith('254')) formattedPhone = '+$rawPhone';
+    else if (rawPhone.startsWith('7') || rawPhone.startsWith('1')) formattedPhone = '+254$rawPhone';
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.get(Uri.parse('https://rahisipay-api.onrender.com/api/v1/agent/stats/$formattedPhone'));
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AgentDashboardScreen(
+            agentPhone: formattedPhone, agentName: data['name'], balance: data['balance'], sales: data['sales']
+          )));
+        }
+      } else if (response.statusCode == 404) {
+        // Agent not found -> Go to Registration
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AgentRegistrationScreen(phoneNumber: formattedPhone)));
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error. Is Render awake?')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0, leading: const BackButton(color: Colors.black)),
+      body: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Agent Portal', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.deepOrange)),
+            const SizedBox(height: 8),
+            const Text('Enter your phone number to access your commission dashboard.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 40),
+            TextField(
+              controller: _phoneController, keyboardType: TextInputType.phone,
+              decoration: InputDecoration(labelText: 'Phone Number', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none))
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity, height: 64,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
+                onPressed: _isLoading ? null : _checkAgentStatus,
+                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 9. AGENT REGISTRATION
+// ==========================================
+class AgentRegistrationScreen extends StatefulWidget {
+  final String phoneNumber;
+  const AgentRegistrationScreen({super.key, required this.phoneNumber});
+  @override State<AgentRegistrationScreen> createState() => _AgentRegistrationScreenState();
+}
+
+class _AgentRegistrationScreenState extends State<AgentRegistrationScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _register() async {
+    if (_nameController.text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.post(
+        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agents/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"agent_name": _nameController.text, "phone_number": widget.phoneNumber}),
+      );
+      if (response.statusCode == 200) {
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AgentDashboardScreen(
+            agentPhone: widget.phoneNumber, agentName: _nameController.text, balance: 0, sales: 0
+          )));
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration Failed'), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error'), backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0, leading: const BackButton(color: Colors.black)),
+      body: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Welcome Agent', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.deepOrange)),
+            const SizedBox(height: 8),
+            Text('Setting up profile for ${widget.phoneNumber}', style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 40),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: 'Full Name', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none))
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity, height: 64,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
+                onPressed: _isLoading ? null : _register,
+                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Complete Registration', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 10. AGENT DASHBOARD
+// ==========================================
+class AgentDashboardScreen extends StatelessWidget {
+  final String agentPhone; final String agentName; final int balance; final int sales;
+  const AgentDashboardScreen({super.key, required this.agentPhone, required this.agentName, required this.balance, required this.sales});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7F6),
+      appBar: AppBar(backgroundColor: Colors.deepOrange, title: Text(agentName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), elevation: 0),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity, padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+              child: Column(
+                children: [
+                  const Text("Pending Commission", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text("KES $balance", style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Colors.deepOrange)),
+                  const Divider(height: 40),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    const Text("Total Seed Bags Sold", style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text("$sales", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                  ])
+                ],
+              ),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity, height: 64,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AgentPosScreen(agentPhone: agentPhone))),
+                child: const Text('New Seed Sale (POS)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 11. AGENT POS SCREEN
+// ==========================================
+class AgentPosScreen extends StatefulWidget {
+  final String agentPhone;
+  const AgentPosScreen({super.key, required this.agentPhone});
+  @override State<AgentPosScreen> createState() => _AgentPosScreenState();
+}
+
+class _AgentPosScreenState extends State<AgentPosScreen> {
+  final TextEditingController _farmerPhoneController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController(text: "1");
+  
+  // AgriCo Seed Database
+  final List<Map<String, dynamic>> _seeds = [
+    {"name": "Agrico Markies (50kg)", "price": 3500},
+    {"name": "Agrico Manitou (50kg)", "price": 3500},
+    {"name": "Agrico Arizona (50kg)", "price": 3200},
+  ];
+  Map<String, dynamic>? _selectedSeed;
+  bool _isProcessing = false;
+
+  Future<void> _processSale() async {
+    if (_selectedSeed == null || _farmerPhoneController.text.isEmpty) return;
+
+    // Format Farmer Phone
+    String rawPhone = _farmerPhoneController.text.trim().replaceAll(' ', '');
+    String formattedFarmer = rawPhone;
+    if (rawPhone.startsWith('0')) formattedFarmer = '+254${rawPhone.substring(1)}';
+    else if (rawPhone.startsWith('254')) formattedFarmer = '+$rawPhone';
+    else if (rawPhone.startsWith('7') || rawPhone.startsWith('1')) formattedFarmer = '+254$rawPhone';
+
+    int qty = int.tryParse(_quantityController.text) ?? 1;
+    int totalAmount = _selectedSeed!['price'] * qty;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agent/log-sale'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "agent_phone": widget.agentPhone,
+          "farmer_phone": formattedFarmer,
+          "amount_kes": totalAmount,
+          "product_name": "${qty}x ${_selectedSeed!['name']}"
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _showSuccessDialog(data['commission_earned']);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sale Failed. Ensure Farmer is registered.'), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error'), backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isProcessing = false);
+    }
+  }
+
+  void _showSuccessDialog(int commission) {
+    showDialog(
+      context: context, barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Sale Confirmed', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)),
+        content: Text('You earned KES $commission from this sale! The farmer has received an SMS.'),
+        actions: [
+          TextButton(onPressed: () {
+            Navigator.pop(context); // Close dialog
+            Navigator.pop(context); // Go back to refresh Dashboard
+          }, child: const Text('Done', style: TextStyle(color: Colors.deepOrange)))
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int currentQty = int.tryParse(_quantityController.text) ?? 1;
+    int total = _selectedSeed != null ? _selectedSeed!['price'] * currentQty : 0;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(backgroundColor: Colors.deepOrange, title: const Text('Point of Sale', style: TextStyle(color: Colors.white)), elevation: 0, iconTheme: const IconThemeData(color: Colors.white)),
+      body: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<Map<String, dynamic>>(
+              decoration: InputDecoration(labelText: 'Select AgriCo Seed Variety', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)),
+              items: _seeds.map((seed) => DropdownMenuItem(value: seed, child: Text("${seed['name']} - KES ${seed['price']}"))).toList(),
+              onChanged: (val) => setState(() => _selectedSeed = val),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: TextField(controller: _quantityController, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Quantity (Bags)', filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)), onChanged: (v) => setState((){}))),
+                const SizedBox(width: 16),
+                Expanded(child: Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: Colors.deepOrange.shade50, borderRadius: BorderRadius.circular(20)), child: Text("KES $total", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.deepOrange)))),
+              ],
+            ),
+            const SizedBox(height: 40),
+            const Text("Farmer Payment Details", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 12),
+            TextField(controller: _farmerPhoneController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Farmer Phone Number', prefixIcon: const Icon(Icons.phone_android), filled: true, fillColor: const Color(0xFFF4F7F6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none))),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity, height: 64,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32))),
+                onPressed: _isProcessing || _selectedSeed == null ? null : _processSale,
+                child: _isProcessing ? const CircularProgressIndicator(color: Colors.white) : const Text('Charge Farmer Account', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

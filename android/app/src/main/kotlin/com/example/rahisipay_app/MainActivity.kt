@@ -1,4 +1,4 @@
-package com.example.rahisipay_app
+package com.oletaiagro.rahisiagropay
 
 import io.flutter.embedding.android.FlutterActivity
 

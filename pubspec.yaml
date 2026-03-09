@@ -1,8 +1,9 @@
 name: rahisi_agro_pay
 description: "The official financial and agribusiness platform for Oletai Agro Group LTD."
+
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 # The following defines the version and build number for your application.
 version: 1.0.0+1
@@ -15,29 +16,26 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  # UI and API dependencies
   cupertino_icons: ^1.0.8
   http: ^1.6.0
+  
+  # --- NEW: QR CODE ECOSYSTEM ---
+  qr_flutter: ^4.1.0        # Generates the QR codes for the Agrovets
+  mobile_scanner: ^6.0.0    # Allows the Farmer to scan the QR codes
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices.
+  # The "flutter_lints" package below contains a set of recommended lints.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.13.1   # Generates the App Icon
   flutter_native_splash: ^2.3.6     # Generates the Splash Screen
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application.
+  # The following line ensures that the Material Icons font is included.
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:

@@ -1,3 +1,5 @@
+import 'screens/farmer_screens.dart';
+import 'screens/partner_screens.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';

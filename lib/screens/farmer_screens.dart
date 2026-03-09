@@ -577,7 +577,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(itemCount: _transactions.length, itemBuilder: (context, i) => ListTile(title: Text(_transactions[i]['title']), trailing: Text(_transactions[i]['amount']))),
   );
 }
-
 // ==========================================
 // 6. QR SCANNER SCREEN FOR FARMERS
 // ==========================================
@@ -607,18 +606,27 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         backgroundColor: const Color(0xFF0C462B),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          // --- UPDATED: MOBILE SCANNER V6 FLASH FIX ---
           IconButton(
             icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
+              valueListenable: cameraController, // Listen to the entire controller
               builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off: return const Icon(Icons.flash_off, color: Colors.grey);
-                  case TorchState.on: return const Icon(Icons.flash_on, color: Colors.yellow);
+                // Safely handle all 4 possible torch states
+                switch (state.torchState) {
+                  case TorchState.on: 
+                    return const Icon(Icons.flash_on, color: Colors.yellow);
+                  case TorchState.auto:
+                    return const Icon(Icons.flash_auto, color: Colors.yellow);
+                  case TorchState.off:
+                  case TorchState.unavailable:
+                  default:
+                    return const Icon(Icons.flash_off, color: Colors.grey);
                 }
               },
             ),
             onPressed: () => cameraController.toggleTorch(),
           ),
+          // ---------------------------------------------
         ],
       ),
       body: Stack(

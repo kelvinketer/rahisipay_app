@@ -1,3 +1,4 @@
+import 'screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart'; // Your existing login screen
 
@@ -18,7 +19,8 @@ class RahisiAgroPayApp extends StatelessWidget {
         fontFamily: 'Roboto', 
         scaffoldBackgroundColor: const Color(0xFFF4F7F6),
       ),
-      home: LoginScreen(), 
+      // --- THIS IS THE MAGIC SWITCH ---
+      home: const OnboardingScreen(), 
       debugShowCheckedModeBanner: false,
     );
   }

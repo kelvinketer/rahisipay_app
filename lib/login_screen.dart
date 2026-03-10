@@ -1,9 +1,10 @@
 import 'screens/farmer_screens.dart';
 import 'screens/partner_screens.dart';
+import 'screens/agent_screens.dart'; // <-- 1. ADDED THE NEW AGENT IMPORT
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:async'; // 1. Import for Timer
+import 'dart:async'; 
 import 'main.dart'; 
 
 class LoginScreen extends StatefulWidget {
@@ -23,13 +24,12 @@ class _LoginScreenState extends State<LoginScreen> {
   int _secondsRemaining = 59;
   bool _canResend = false;
 
-  // 2. Timer Logic
   void _startResendTimer() {
     setState(() {
       _secondsRemaining = 59;
       _canResend = false;
     });
-    _timer?.cancel(); // Cancel any existing timer before starting a new one
+    _timer?.cancel(); 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_secondsRemaining > 0) {
@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel(); // 3. IMPORTANT: Always cancel timers to prevent memory leaks
+    _timer?.cancel(); 
     _phoneController.dispose();
     _otpController.dispose();
     super.dispose();
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (response.statusCode == 200) {
         setState(() => _isOtpSent = true); 
-        _startResendTimer(); // 4. Start the countdown on success
+        _startResendTimer(); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Secure PIN sent via SMS'), 
           backgroundColor: Color(0xFF144D2F)
@@ -287,7 +287,8 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16), 
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
             ),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentPortalScreen())),
+            // --- 2. UPDATED ROUTE TO NEW AGENT LOGIN SCREEN ---
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentLoginScreen())),
             child: const Text("Access AgriCo Agent Portal", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w800, fontSize: 15)),
           ),
         ),
@@ -328,7 +329,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 24),
 
-        // --- NEW: COUNTDOWN TIMER & RESEND UI ---
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -372,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () => setState(() {
             _isOtpSent = false;
             _otpController.clear();
-            _timer?.cancel(); // Cancel timer if they go back
+            _timer?.cancel(); 
           }),
           child: Text("Change Phone Number", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w700)),
         ),

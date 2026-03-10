@@ -183,11 +183,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         // The ClipOval ensures the square logo image stays perfectly circular
                         child: ClipOval(
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0), // Adds a little breathing room inside the circle
+                            padding: const EdgeInsets.all(8.0), 
                             child: Image.asset(
                               'assets/logo.png', 
                               fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.eco, color: Color(0xFF144D2F), size: 40) // Fallback just in case
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.eco, color: Color(0xFF144D2F), size: 40) 
                             ),
                           ),
                         ),
@@ -310,8 +310,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 icon: const Icon(Icons.storefront, color: Color(0xFF144D2F), size: 18),
                 label: const Text("Merchants", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w700, fontSize: 13)),
-                // Pointing to AgrovetRegistrationScreen for now.
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetRegistrationScreen())),
+                // --- THIS IS THE UPDATED LINE ---
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetLoginScreen())),
               ),
             ),
             const SizedBox(width: 12),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; 
 import 'dart:convert';
 import 'package:mobile_scanner/mobile_scanner.dart'; // For scanning Agrovet QR Codes
+import 'advisor_screen.dart'; // <-- 1. ADDED ADVISOR IMPORT
 
 // ==========================================
 // 1. COMPLIANT PROFILE COMPLETION (KYC)
@@ -274,7 +275,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _buildActionCircle(Icons.add_chart, "Invest", () => Navigator.push(context, MaterialPageRoute(builder: (context) => MarketplaceScreen(farmerPhone: widget.farmerPhone)))),
                         _buildActionCircle(Icons.payments_outlined, "Repay", () => _showRepayDialog(context)),
                         _buildActionCircle(Icons.history_edu, "Ledger", () => Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionHistoryScreen(farmerPhone: widget.farmerPhone)))),
-                        _buildActionCircle(Icons.support_agent, "Advisor", () {}),
+                        
+                        // --- 2. WIRED UP THE ADVISOR BUTTON ---
+                        _buildActionCircle(Icons.support_agent, "Advisor", () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => FarmAdvisorScreen(farmerPhone: widget.farmerPhone)));
+                        }),
+                        
                       ],
                     ),
                     const SizedBox(height: 40),

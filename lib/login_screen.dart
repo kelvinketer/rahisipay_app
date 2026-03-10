@@ -1,13 +1,14 @@
 import 'screens/farmer_screens.dart';
 import 'screens/partner_screens.dart';
-import 'screens/agent_screens.dart'; // <-- 1. ADDED THE NEW AGENT IMPORT
+import 'screens/agent_screens.dart'; 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async'; 
-import 'main.dart'; 
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -169,16 +170,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // --- OLETAI LOGO UPDATE ---
                       Container(
-                        height: 72, width: 72,
+                        height: 90, width: 90,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle, 
-                          color: Colors.grey.shade50, 
+                          color: Colors.white, 
                           boxShadow: [
                             BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5)),
                           ]
                         ),
-                        child: const Icon(Icons.eco, color: Color(0xFF144D2F), size: 36),
+                        // The ClipOval ensures the square logo image stays perfectly circular
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0), // Adds a little breathing room inside the circle
+                            child: Image.asset(
+                              'assets/logo.png', 
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.eco, color: Color(0xFF144D2F), size: 40) // Fallback just in case
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 28),
 
@@ -271,26 +283,52 @@ class _LoginScreenState extends State<LoginScreen> {
               : const Text("Secure Login", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
           ),
         ),
-        const SizedBox(height: 28),
-        Divider(color: Colors.grey.shade200, thickness: 1.5),
-        const SizedBox(height: 16),
-        TextButton(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetRegistrationScreen())),
-          child: const Text("Are you an Agrovet? Register here.", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF144D2F).withOpacity(0.06), 
-              padding: const EdgeInsets.symmetric(vertical: 16), 
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+        
+        // --- NEW PARTNER ACCESS SECTION ---
+        const SizedBox(height: 32),
+        Row(
+          children: [
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text("PARTNER ACCESS", style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
             ),
-            // --- 2. UPDATED ROUTE TO NEW AGENT LOGIN SCREEN ---
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentLoginScreen())),
-            child: const Text("Access AgriCo Agent Portal", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w800, fontSize: 15)),
-          ),
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        
+        Row(
+          children: [
+            // Merchant (Agrovet) Button
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                ),
+                icon: const Icon(Icons.storefront, color: Color(0xFF144D2F), size: 18),
+                label: const Text("Merchants", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w700, fontSize: 13)),
+                // Pointing to AgrovetRegistrationScreen for now.
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetRegistrationScreen())),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Agent Button
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                ),
+                icon: const Icon(Icons.support_agent, color: Color(0xFF144D2F), size: 18),
+                label: const Text("Agents", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w700, fontSize: 13)),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentLoginScreen())),
+              ),
+            ),
+          ],
         ),
       ],
     );

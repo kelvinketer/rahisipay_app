@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Added for network calls
-import 'dart:convert'; // Added for JSON encoding/decoding
+import 'package:http/http.dart' as http; 
+import 'dart:convert'; 
+import 'package:image_picker/image_picker.dart'; // NEW: For accessing the camera
+import 'dart:io'; // NEW: For handling file paths
 
 class FarmAdvisorScreen extends StatefulWidget {
   final String farmerPhone;
@@ -19,13 +21,14 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
   @override
   void initState() {
     super.initState();
-    // The initial greeting from the AI when the farmer opens the screen
+    // The initial greeting
     _messages.add({
       "isUser": false,
       "text": "Hello! I am your Oletai Farm Advisor. I see you are farming in Kiambu County. The weather in Juja is expected to be dry this week. How can I help you maximize your yield today?"
     });
   }
 
+  // --- STANDARD TEXT MESSAGE ---
   void _sendMessage() async {
     if (_chatController.text.trim().isEmpty) return;
 
@@ -38,7 +41,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     });
 
     try {
-      // THE LIVE CONNECTION TO YOUR GEMINI-POWERED BACKEND
       final response = await http.post(
         Uri.parse('https://rahisipay-api.onrender.com/api/v1/advisor/chat'),
         headers: {'Content-Type': 'application/json'},
@@ -66,6 +68,54 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
         setState(() {
           _isTyping = false;
           _messages.add({"isUser": false, "text": "Network error. The Oletai AI servers are currently syncing. Please try again."});
+        });
+      }
+    }
+  }
+
+  // --- NEW: MULTIMODAL IMAGE DIAGNOSIS ---
+  Future<void> _pickAndDiagnose() async {
+    final ImagePicker picker = ImagePicker();
+    // 1. Open the camera
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+    
+    if (photo == null) return; // User canceled the camera
+
+    setState(() {
+      _messages.add({"isUser": true, "text": "[Sent an Image for Diagnosis 📸]"});
+      _isTyping = true;
+    });
+
+    try {
+      // 2. Prepare the Multi-part upload to the new backend endpoint
+      var request = http.MultipartRequest(
+        'POST', 
+        Uri.parse('https://rahisipay-api.onrender.com/api/v1/advisor/diagnose')
+      );
+      
+      request.fields['farmer_phone'] = widget.farmerPhone;
+      request.files.add(await http.MultipartFile.fromPath('image', photo.path));
+
+      // 3. Send it to the Render server
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _isTyping = false;
+            _messages.add({"isUser": false, "text": data['diagnosis']});
+          });
+        }
+      } else {
+        throw Exception("Server Error");
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add({"isUser": false, "text": "Image upload failed. Please ensure you have a strong network connection."});
         });
       }
     }
@@ -122,6 +172,12 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
             child: SafeArea(
               child: Row(
                 children: [
+                  // --- THE NEW CAMERA BUTTON ---
+                  IconButton(
+                    icon: const Icon(Icons.camera_alt, color: Color(0xFF144D2F), size: 28),
+                    onPressed: _isTyping ? null : _pickAndDiagnose,
+                  ),
+                  
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -131,7 +187,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
                       child: TextField(
                         controller: _chatController,
                         decoration: const InputDecoration(
-                          hintText: "Ask about crops, weather, or soil...",
+                          hintText: "Ask about crops or scan plant...",
                           hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -140,7 +196,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: _isTyping ? null : _sendMessage,
                     child: Container(

@@ -23,6 +23,7 @@ dependencies:
   # --- NEW: QR CODE ECOSYSTEM ---
   qr_flutter: ^4.1.0        # Generates the QR codes for the Agrovets
   mobile_scanner: ^6.0.0    # Allows the Farmer to scan the QR codes
+  fl_chart: ^1.1.1
 
 dev_dependencies:
   flutter_test:

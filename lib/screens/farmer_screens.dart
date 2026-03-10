@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; 
 import 'dart:convert';
@@ -306,17 +307,127 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildROICard(String yieldAmt) {
+  // --- UPDATED ROI CARD WITH FL_CHART INTEGRATION ---
+  Widget _buildROICard(String yieldAmtString) {
+    // 1. Calculate the raw numbers for the graph
+    double limit = widget.creditLimit.toDouble();
+    double yieldAmt = limit * 3.5; 
+
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30)]),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(32), 
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, 10))]
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Buying Power", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)), Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: Text("+250% ROI", style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w900, fontSize: 10)))]),
-          Text("KES ${widget.creditLimit}", style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
-          const Divider(height: 40),
-          Row(children: [const Icon(Icons.auto_graph_rounded, color: Colors.green), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Projected Yield", style: TextStyle(color: Colors.grey, fontSize: 11)), Text("KES $yieldAmt", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))])]),
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+            children: [
+              const Text("Buying Power", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)), 
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: Text("+250% ROI", style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w900, fontSize: 10)))
+            ]
+          ),
+          const SizedBox(height: 4),
+          Text("KES ${limit.toInt()}", style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
+          const SizedBox(height: 30),
+
+          // --- THE NEW FL_CHART GRAPH ---
+          SizedBox(
+            height: 120, // Keeps the card from getting too tall
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(show: false), // Clean background
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      getTitlesWidget: (value, meta) {
+                        // Custom labels for the crop cycle
+                        switch (value.toInt()) {
+                          case 0: return const Text('Plant', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold));
+                          case 3: return const Text('Grow', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold));
+                          case 6: return const Text('Harvest', style: TextStyle(color: Color(0xFF0C462B), fontSize: 10, fontWeight: FontWeight.w900));
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: 0, maxX: 6,
+                minY: 0, maxY: yieldAmt * 1.2, // Leaves breathing room at the top
+                lineBarsData: [
+                  // Line 1: The flat Principal Investment (Baseline)
+                  LineChartBarData(
+                    spots: [FlSpot(0, limit), FlSpot(6, limit)],
+                    isCurved: false,
+                    color: Colors.grey.withOpacity(0.4),
+                    barWidth: 2,
+                    dashArray: [5, 5], // Dashed line
+                    dotData: FlDotData(show: false),
+                  ),
+                  // Line 2: The sweeping Growth Curve
+                  LineChartBarData(
+                    spots: [
+                      FlSpot(0, limit),
+                      FlSpot(3, limit + ((yieldAmt - limit) * 0.25)), // Dips slightly before shooting up
+                      FlSpot(6, yieldAmt),
+                    ],
+                    isCurved: true,
+                    curveSmoothness: 0.4,
+                    color: const Color(0xFF0C462B),
+                    barWidth: 4,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        // Only show the dot at the final harvest peak
+                        if (index == 2) {
+                          return FlDotCirclePainter(radius: 6, color: Colors.greenAccent, strokeWidth: 2, strokeColor: const Color(0xFF0C462B));
+                        }
+                        return FlDotCirclePainter(radius: 0, color: Colors.transparent);
+                      }
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [const Color(0xFF0C462B).withOpacity(0.2), Colors.transparent],
+                        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // ------------------------------
+
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 20),
+          
+          // Footer
+          Row(
+            children: [
+              const Icon(Icons.auto_graph_rounded, color: Colors.green), 
+              const SizedBox(width: 8), 
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start, 
+                children: [
+                  const Text("Projected Yield", style: TextStyle(color: Colors.grey, fontSize: 11)), 
+                  Text("KES $yieldAmtString", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))
+                ]
+              )
+            ]
+          ),
         ],
       ),
     );

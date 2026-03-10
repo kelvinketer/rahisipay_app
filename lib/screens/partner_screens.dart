@@ -14,55 +14,145 @@ class AgrovetLoginScreen extends StatefulWidget {
 
 class _AgrovetLoginScreenState extends State<AgrovetLoginScreen> {
   final TextEditingController _tillController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _loginMerchant() async {
-    if (_tillController.text.isEmpty) return;
+    if (_tillController.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
 
     String tillNumber = _tillController.text.trim();
     
-    // We will attempt to fetch the Agrovet's stats
     try {
-      final response = await http.get(
-        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agrovets')
+      // 1. Send Till Number to Backend to trigger SMS
+      final response = await http.post(
+        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agrovets/login/send-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"till_number": tillNumber}),
       );
       
       if (response.statusCode == 200) {
-        final List<dynamic> agrovets = jsonDecode(response.body);
-        
-        // Find if this till exists in the database
-        final merchant = agrovets.firstWhere(
-          (a) => a['till_number'].toString() == tillNumber, 
-          orElse: () => null
-        );
+        final data = jsonDecode(response.body);
+        String maskedPhone = data['masked_phone'];
 
-        if (merchant != null) {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => AgrovetDashboardScreen(
-                businessName: merchant['name'],
-                tillNumber: merchant['till_number'].toString(),
-                location: merchant['location'] ?? 'Kenya',
-              )),
-            );
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        // 2. Show OTP Dialog to the user
+        if (mounted) {
+          _showOTPDialog(tillNumber, maskedPhone);
+        }
+      } else if (response.statusCode == 404) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Till not found. Please register first.'), 
             backgroundColor: Colors.red
           ));
-        }
+      } else {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Server Error. Try again.'), 
+            backgroundColor: Colors.red
+          ));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Network Error. Try again.'), 
+        content: Text('Network Error. Check your connection.'), 
         backgroundColor: Colors.red
       ));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showOTPDialog(String tillNumber, String maskedPhone) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        bool isVerifying = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text("Verify Login", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF144D2F))),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Enter the 4-digit PIN sent to $maskedPhone", style: TextStyle(color: Colors.grey.shade700)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      hintText: "----",
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isVerifying ? null : () {
+                    _otpController.clear();
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF144D2F),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
+                  onPressed: isVerifying ? null : () async {
+                    if (_otpController.text.length != 4) return;
+                    
+                    setDialogState(() => isVerifying = true);
+                    
+                    try {
+                      // 3. Send OTP to backend for verification
+                      final verifyResponse = await http.post(
+                        Uri.parse('https://rahisipay-api.onrender.com/api/v1/agrovets/login/verify-otp'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          "till_number": tillNumber,
+                          "otp_code": _otpController.text.trim()
+                        }),
+                      );
+
+                      if (verifyResponse.statusCode == 200) {
+                        final data = jsonDecode(verifyResponse.body);
+                        if (mounted) {
+                          Navigator.pop(context); // Close Dialog
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => AgrovetDashboardScreen(
+                              businessName: data['business_name'],
+                              tillNumber: data['till_number'],
+                              location: "Kenya", // Assuming location isn't critical for the dashboard view yet
+                            )),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid PIN. Try again.'), backgroundColor: Colors.red));
+                      }
+                    } catch (e) {
+                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error.'), backgroundColor: Colors.red));
+                    } finally {
+                       setDialogState(() => isVerifying = false);
+                    }
+                  },
+                  child: isVerifying 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("Verify", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
   }
 
   @override
@@ -97,11 +187,11 @@ class _AgrovetLoginScreenState extends State<AgrovetLoginScreen> {
               child: TextField(
                 controller: _tillController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Safaricom Till Number', 
-                  prefixIcon: const Icon(Icons.numbers, color: Colors.grey),
+                  prefixIcon: Icon(Icons.numbers, color: Colors.grey),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(20)
+                  contentPadding: EdgeInsets.all(20)
                 ),
               ),
             ),

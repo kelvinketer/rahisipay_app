@@ -186,18 +186,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       // --- OLETAI LOGO UPDATE ---
                       Container(
-                        height: 90, width: 90,
-                        padding: const EdgeInsets.all(22),
+                        height: 85.0, 
+                        width: 85.0, 
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle, 
-                          color: Colors.white, 
+                          color: Colors.white,
+                          shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5)),
-                          ]
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                        child: Image.asset(
-                          'assets/images/app_logo_leaf.png', 
-                          fit: BoxFit.contain,
+                        child: ClipOval( 
+                          child: Image.asset(
+                            'assets/images/app_logo_leaf.png', 
+                            fit: BoxFit.cover, 
+                          ),
                         ),
                       ),
                       const SizedBox(height: 28),

@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:mobile_scanner/mobile_scanner.dart'; // For scanning Agrovet QR Codes
 import 'advisor_screen.dart'; // <-- 1. ADDED ADVISOR IMPORT
-import 'academy_screen.dart'; // <-- NEW: ADDED ACADEMY IMPORT
+import 'academy_screen.dart'; // <-- 2. ADDED ACADEMY IMPORT
+import 'community_screen.dart'; // <-- NEW: ADDED COMMUNITY IMPORT
 
 // ==========================================
 // 1. COMPLIANT PROFILE COMPLETION (KYC)
@@ -158,7 +159,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 }
 
 // ==========================================
-// 2. PREMIUM DASHBOARD (V2.0 e-Learning & SLIVERS)
+// 2. PREMIUM DASHBOARD (WITH BOTTOM NAV)
 // ==========================================
 class DashboardScreen extends StatefulWidget {
   final String farmerPhone;
@@ -175,6 +176,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   List<dynamic> _transactions = [];
   bool _isLoading = true;
+  int _currentIndex = 0; // <-- NEW: Tracks active tab
 
   @override
   void initState() {
@@ -232,7 +234,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- NEW: TRUST SCORE BOTTOM SHEET ---
   void _showTrustScoreDetails() {
     showModalBottomSheet(
       context: context,
@@ -281,92 +282,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String projectedYield = (widget.creditLimit * 3.5).toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+    // --- NEW: TAB LIST ---
+    final List<Widget> screens = [
+      _buildHomeTab(), // Our standard dashboard
+      CommunityScreen(farmerPhone: widget.farmerPhone), // <-- UPDATED to pass the phone number
+    ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6), 
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 200, pinned: true, stretch: true, backgroundColor: const Color(0xFF0C462B),
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              title: Text(widget.isProfileComplete ? "Smart Capital Dashboard" : "Welcome", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-              background: Container(
-                decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0A2E1A), Color(0xFF144D2F)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20),
-                    // --- UPDATED: MAKE SCORE TAPPABLE ---
-                    GestureDetector(
-                      onTap: _showTrustScoreDetails,
-                      child: Column(
-                        children: [
-                          Text("${widget.trustScore.toInt()}%", style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2)),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text("AGRI-TRUST SCORE", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 1.5)),
-                              SizedBox(width: 4),
-                              Icon(Icons.info_outline, color: Colors.white70, size: 14)
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildROICard(projectedYield),
-                  const SizedBox(height: 32),
-                  if (!widget.isProfileComplete) _buildKYCPrompt(),
-                  if (widget.isProfileComplete) ...[
-                    const Text("Quick Actions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildActionCircle(Icons.add_chart, "Invest", () => Navigator.push(context, MaterialPageRoute(builder: (context) => MarketplaceScreen(farmerPhone: widget.farmerPhone)))),
-                        
-                        // --- UPDATED: NAVIGATE TO ACADEMY SCREEN ---
-                        _buildActionCircle(Icons.school, "Academy", () => Navigator.push(context, MaterialPageRoute(builder: (context) => AcademyScreen(farmerPhone: widget.farmerPhone)))),
-                        
-                        _buildActionCircle(Icons.payments_outlined, "Repay", () => _showRepayDialog(context)),
-                        
-                        _buildActionCircle(Icons.support_agent, "Advisor", () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => FarmAdvisorScreen(farmerPhone: widget.farmerPhone)));
-                        }),
-                        
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
-                        TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionHistoryScreen(farmerPhone: widget.farmerPhone))), child: const Text("View All")),
-                      ],
-                    ),
-                    _buildTransactionList(),
-                  ],
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ),
-        ],
+      // Switch body based on current tab
+      body: IndexedStack(
+        index: _currentIndex,
+        children: screens,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: widget.isProfileComplete ? Container(
+      // ONLY show the FAB on the Home Tab (index 0)
+      floatingActionButton: (widget.isProfileComplete && _currentIndex == 0) ? Container(
         height: 70, margin: const EdgeInsets.symmetric(horizontal: 24),
         child: ElevatedButton.icon(
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C462B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)), elevation: 10),
@@ -375,6 +306,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
           label: const Text("SCAN TO PAY AGROVET", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
         ),
       ) : null,
+      
+      // --- NEW: BOTTOM NAVIGATION BAR ---
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))]
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF0C462B),
+          unselectedItemColor: Colors.grey.shade400,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.home_filled)),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.groups)),
+              label: 'Community',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- REFACTORED: MOVED DASHBOARD UI INTO ITS OWN METHOD ---
+  Widget _buildHomeTab() {
+    String projectedYield = (widget.creditLimit * 3.5).toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 200, pinned: true, stretch: true, backgroundColor: const Color(0xFF0C462B),
+          flexibleSpace: FlexibleSpaceBar(
+            centerTitle: true,
+            title: Text(widget.isProfileComplete ? "Smart Capital Dashboard" : "Welcome", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+            background: Container(
+              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0A2E1A), Color(0xFF144D2F)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: _showTrustScoreDetails,
+                    child: Column(
+                      children: [
+                        Text("${widget.trustScore.toInt()}%", style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2)),
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text("AGRI-TRUST SCORE", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 1.5)),
+                            SizedBox(width: 4),
+                            Icon(Icons.info_outline, color: Colors.white70, size: 14)
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildROICard(projectedYield),
+                const SizedBox(height: 32),
+                if (!widget.isProfileComplete) _buildKYCPrompt(),
+                if (widget.isProfileComplete) ...[
+                  const Text("Quick Actions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildActionCircle(Icons.add_chart, "Invest", () => Navigator.push(context, MaterialPageRoute(builder: (context) => MarketplaceScreen(farmerPhone: widget.farmerPhone)))),
+                      _buildActionCircle(Icons.school, "Academy", () => Navigator.push(context, MaterialPageRoute(builder: (context) => AcademyScreen(farmerPhone: widget.farmerPhone)))),
+                      _buildActionCircle(Icons.payments_outlined, "Repay", () => _showRepayDialog(context)),
+                      _buildActionCircle(Icons.support_agent, "Advisor", () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => FarmAdvisorScreen(farmerPhone: widget.farmerPhone)));
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
+                      TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionHistoryScreen(farmerPhone: widget.farmerPhone))), child: const Text("View All")),
+                    ],
+                  ),
+                  _buildTransactionList(),
+                ],
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -509,6 +548,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 }
+
 // ==========================================
 // 3. MARKETPLACE SCREEN
 // ==========================================
@@ -747,6 +787,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(itemCount: _transactions.length, itemBuilder: (context, i) => ListTile(title: Text(_transactions[i]['title']), trailing: Text(_transactions[i]['amount']))),
   );
 }
+
 // ==========================================
 // 6. QR SCANNER SCREEN FOR FARMERS
 // ==========================================
@@ -776,12 +817,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         backgroundColor: const Color(0xFF0C462B),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          // --- UPDATED: MOBILE SCANNER V6 FLASH FIX ---
           IconButton(
             icon: ValueListenableBuilder(
-              valueListenable: cameraController, // Listen to the entire controller
+              valueListenable: cameraController, 
               builder: (context, state, child) {
-                // Safely handle all 4 possible torch states
                 switch (state.torchState) {
                   case TorchState.on: 
                     return const Icon(Icons.flash_on, color: Colors.yellow);
@@ -796,7 +835,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             ),
             onPressed: () => cameraController.toggleTorch(),
           ),
-          // ---------------------------------------------
         ],
       ),
       body: Stack(
@@ -808,7 +846,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               final List<Barcode> barcodes = capture.barcodes;
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null) {
-                  // Only accept valid Oletai generated QR codes for security
                   if (barcode.rawValue!.startsWith("oletai:till:")) {
                     setState(() => _isScanned = true);
                     String extractedTill = barcode.rawValue!.replaceAll("oletai:till:", "");
@@ -844,7 +881,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       MaterialPageRoute(builder: (context) => CheckoutScreen(
         farmerPhone: widget.farmerPhone, 
         productName: "Direct Shop Purchase", 
-        price: 5000, // You can make this dynamic later
+        price: 5000, 
         prefilledTill: tillNumber,
       ))
     );

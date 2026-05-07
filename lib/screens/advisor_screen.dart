@@ -10,11 +10,13 @@ class FarmAdvisorScreen extends StatefulWidget {
   const FarmAdvisorScreen({super.key, required this.farmerPhone});
 
   @override
+
   State<FarmAdvisorScreen> createState() => _FarmAdvisorScreenState();
 }
 
 class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
   final TextEditingController _chatController = TextEditingController();
+  // Updated list to handle optional 'imagePath' for multimodal messages
   final List<Map<String, dynamic>> _messages = [];
   bool _isTyping = false;
 
@@ -24,7 +26,8 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     // The initial greeting
     _messages.add({
       "isUser": false,
-      "text": "Hello! I am your Oletai Farm Advisor. I see you are farming in Kiambu County. The weather in Juja is expected to be dry this week. How can I help you maximize your yield today?"
+      "text": "Hello! I am your Oletai Farm Advisor. I see you are farming in Kiambu County. The weather in Juja is expected to be dry this week. How can I help you maximize your yield today?",
+      "imagePath": null
     });
   }
 
@@ -35,7 +38,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     String userText = _chatController.text.trim();
     
     setState(() {
-      _messages.add({"isUser": true, "text": userText});
+      _messages.add({"isUser": true, "text": userText, "imagePath": null});
       _chatController.clear();
       _isTyping = true;
     });
@@ -57,7 +60,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
         if (mounted) {
           setState(() {
             _isTyping = false;
-            _messages.add({"isUser": false, "text": aiReply});
+            _messages.add({"isUser": false, "text": aiReply, "imagePath": null});
           });
         }
       } else {
@@ -67,13 +70,13 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
       if (mounted) {
         setState(() {
           _isTyping = false;
-          _messages.add({"isUser": false, "text": "Network error. The Oletai AI servers are currently syncing. Please try again."});
+          _messages.add({"isUser": false, "text": "Network error. The Oletai AI servers are currently syncing. Please try again.", "imagePath": null});
         });
       }
     }
   }
 
-  // --- NEW: MULTIMODAL IMAGE DIAGNOSIS ---
+  // --- UPDATED: MULTIMODAL IMAGE DIAGNOSIS ---
   Future<void> _pickAndDiagnose() async {
     final ImagePicker picker = ImagePicker();
     // 1. Open the camera
@@ -81,13 +84,18 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     
     if (photo == null) return; // User canceled the camera
 
+    // 2. Add the image to the chat UI immediately
     setState(() {
-      _messages.add({"isUser": true, "text": "[Sent an Image for Diagnosis 📸]"});
+      _messages.add({
+        "isUser": true, 
+        "text": "Please analyze this crop.", // Default text to accompany the image
+        "imagePath": photo.path 
+      });
       _isTyping = true;
     });
 
     try {
-      // 2. Prepare the Multi-part upload to the new backend endpoint
+      // 3. Prepare the Multi-part upload to the new backend endpoint
       var request = http.MultipartRequest(
         'POST', 
         Uri.parse('https://rahisipay-api.onrender.com/api/v1/advisor/diagnose')
@@ -96,7 +104,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
       request.fields['farmer_phone'] = widget.farmerPhone;
       request.files.add(await http.MultipartFile.fromPath('image', photo.path));
 
-      // 3. Send it to the Render server
+      // 4. Send it to the Render server
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
@@ -105,7 +113,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
         if (mounted) {
           setState(() {
             _isTyping = false;
-            _messages.add({"isUser": false, "text": data['diagnosis']});
+            _messages.add({"isUser": false, "text": data['diagnosis'], "imagePath": null});
           });
         }
       } else {
@@ -115,7 +123,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
       if (mounted) {
         setState(() {
           _isTyping = false;
-          _messages.add({"isUser": false, "text": "Image upload failed. Please ensure you have a strong network connection."});
+          _messages.add({"isUser": false, "text": "Image upload failed. Please ensure you have a strong network connection.", "imagePath": null});
         });
       }
     }
@@ -146,8 +154,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
-                final isUser = msg['isUser'];
-                return _buildChatBubble(msg['text'], isUser);
+                return _buildChatBubble(msg['text'], msg['isUser'], msg['imagePath']);
               },
             ),
           ),
@@ -172,7 +179,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
             child: SafeArea(
               child: Row(
                 children: [
-                  // --- THE NEW CAMERA BUTTON ---
                   IconButton(
                     icon: const Icon(Icons.camera_alt, color: Color(0xFF144D2F), size: 28),
                     onPressed: _isTyping ? null : _pickAndDiagnose,
@@ -217,7 +223,8 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     );
   }
 
-  Widget _buildChatBubble(String text, bool isUser) {
+  // --- UPDATED: RENDER IMAGE INSIDE CHAT BUBBLE ---
+  Widget _buildChatBubble(String text, bool isUser, String? imagePath) {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -236,13 +243,31 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
             if (!isUser) BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
           ]
         ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isUser ? Colors.white : Colors.black87,
-            fontSize: 15,
-            height: 1.4,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // If the message has an image, render it first
+            if (imagePath != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(imagePath),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            // Then render the text
+            Text(
+              text,
+              style: TextStyle(
+                color: isUser ? Colors.white : Colors.black87,
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
     );

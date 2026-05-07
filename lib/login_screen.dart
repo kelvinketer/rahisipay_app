@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // --- 1. SEND OTP LOGIC ---
+  // --- 1. SEND OTP LOGIC (STRICT UI GUARDS ADDED) ---
   Future<void> _sendOtp() async {
     String userNumber = _phoneController.text.trim();
     
@@ -73,26 +73,36 @@ class _LoginScreenState extends State<LoginScreen> {
         body: jsonEncode({"phone_number": fullNumber}),
       );
       
+      // STRICT CHECK: Only change the UI state if the backend confirms success
       if (response.statusCode == 200) {
-        setState(() => _isOtpSent = true); 
-        _startResendTimer(); 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Secure PIN sent via SMS'), 
-          backgroundColor: Color(0xFF144D2F)
-        ));
+        if (mounted) {
+          setState(() => _isOtpSent = true); 
+          _startResendTimer(); 
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Secure PIN sent via SMS'), 
+            backgroundColor: Color(0xFF144D2F)
+          ));
+        }
       } else {
+        // Fallback: Ensure the OTP screen does NOT open on failure
+        if (mounted) {
+          setState(() => _isOtpSent = false); 
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Failed to send SMS. Please try again.'), 
+            backgroundColor: Colors.red
+          ));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isOtpSent = false); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Failed to send SMS.'), 
+          content: Text('Network Error: Check Server Connection'), 
           backgroundColor: Colors.red
         ));
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Network Error: Check Server Connection'), 
-        backgroundColor: Colors.red
-      ));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -122,18 +132,22 @@ class _LoginScreenState extends State<LoginScreen> {
           )));
         }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Invalid PIN.'), 
+            backgroundColor: Colors.red
+          ));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Invalid PIN.'), 
+          content: Text('Network Error. Check your connection.'), 
           backgroundColor: Colors.red
         ));
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Network Error'), 
-        backgroundColor: Colors.red
-      ));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -173,6 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // --- OLETAI LOGO UPDATE ---
                       Container(
                         height: 90, width: 90,
+                        padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle, 
                           color: Colors.white, 
@@ -180,16 +195,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5)),
                           ]
                         ),
-                        // The ClipOval ensures the square logo image stays perfectly circular
-                        child: ClipOval(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0), 
-                            child: Image.asset(
-                              'assets/logo.png', 
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.eco, color: Color(0xFF144D2F), size: 40) 
-                            ),
-                          ),
+                        child: Image.asset(
+                          'assets/images/app_logo_leaf.png', 
+                          fit: BoxFit.contain,
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -310,7 +318,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 icon: const Icon(Icons.storefront, color: Color(0xFF144D2F), size: 18),
                 label: const Text("Merchants", style: TextStyle(color: Color(0xFF144D2F), fontWeight: FontWeight.w700, fontSize: 13)),
-                // --- THIS IS THE UPDATED LINE ---
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgrovetLoginScreen())),
               ),
             ),

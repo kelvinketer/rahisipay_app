@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:mobile_scanner/mobile_scanner.dart'; // For scanning Agrovet QR Codes
 import 'advisor_screen.dart'; // <-- 1. ADDED ADVISOR IMPORT
+import 'academy_screen.dart'; // <-- NEW: ADDED ACADEMY IMPORT
 
 // ==========================================
 // 1. COMPLIANT PROFILE COMPLETION (KYC)
@@ -157,7 +158,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 }
 
 // ==========================================
-// 2. PREMIUM DASHBOARD (V2.0 ROI & SLIVERS)
+// 2. PREMIUM DASHBOARD (V2.0 e-Learning & SLIVERS)
 // ==========================================
 class DashboardScreen extends StatefulWidget {
   final String farmerPhone;
@@ -231,6 +232,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // --- NEW: TRUST SCORE BOTTOM SHEET ---
+  void _showTrustScoreDetails() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Center(child: Icon(Icons.psychology, size: 40, color: Color(0xFF0C462B))),
+            const SizedBox(height: 16),
+            const Text("How to grow your Agri-Trust Score", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
+            const SizedBox(height: 16),
+            _buildScoreTip(Icons.school, "Complete short farming courses in the Academy."),
+            _buildScoreTip(Icons.camera_alt, "Upload crop photos for AI diagnosis and citizen science."),
+            _buildScoreTip(Icons.shopping_bag, "Consistently redeem your Smart Capital at verified Agrovets."),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity, height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C462B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Got it", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreTip(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.green, size: 20),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: const TextStyle(color: Colors.black87, height: 1.4))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String projectedYield = (widget.creditLimit * 3.5).toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
@@ -243,15 +291,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             expandedHeight: 200, pinned: true, stretch: true, backgroundColor: const Color(0xFF0C462B),
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
-              title: Text(widget.isProfileComplete ? "Portfolio Overview" : "Welcome", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+              title: Text(widget.isProfileComplete ? "Smart Capital Dashboard" : "Welcome", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
               background: Container(
                 decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0A2E1A), Color(0xFF144D2F)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 20),
-                    Text("${widget.trustScore.toInt()}%", style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2)),
-                    const Text("AGRI-TRUST SCORE", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 1.5)),
+                    // --- UPDATED: MAKE SCORE TAPPABLE ---
+                    GestureDetector(
+                      onTap: _showTrustScoreDetails,
+                      child: Column(
+                        children: [
+                          Text("${widget.trustScore.toInt()}%", style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2)),
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text("AGRI-TRUST SCORE", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 1.5)),
+                              SizedBox(width: 4),
+                              Icon(Icons.info_outline, color: Colors.white70, size: 14)
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -273,10 +336,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildActionCircle(Icons.add_chart, "Invest", () => Navigator.push(context, MaterialPageRoute(builder: (context) => MarketplaceScreen(farmerPhone: widget.farmerPhone)))),
-                        _buildActionCircle(Icons.payments_outlined, "Repay", () => _showRepayDialog(context)),
-                        _buildActionCircle(Icons.history_edu, "Ledger", () => Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionHistoryScreen(farmerPhone: widget.farmerPhone)))),
                         
-                        // --- 2. WIRED UP THE ADVISOR BUTTON ---
+                        // --- UPDATED: NAVIGATE TO ACADEMY SCREEN ---
+                        _buildActionCircle(Icons.school, "Academy", () => Navigator.push(context, MaterialPageRoute(builder: (context) => AcademyScreen(farmerPhone: widget.farmerPhone)))),
+                        
+                        _buildActionCircle(Icons.payments_outlined, "Repay", () => _showRepayDialog(context)),
+                        
                         _buildActionCircle(Icons.support_agent, "Advisor", () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => FarmAdvisorScreen(farmerPhone: widget.farmerPhone)));
                         }),
@@ -313,9 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- UPDATED ROI CARD WITH FL_CHART INTEGRATION ---
   Widget _buildROICard(String yieldAmtString) {
-    // 1. Calculate the raw numbers for the graph
     double limit = widget.creditLimit.toDouble();
     double yieldAmt = limit * 3.5; 
 
@@ -329,11 +392,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children: [
-              const Text("Buying Power", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)), 
+              const Text("Available Smart Capital", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)), 
               Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: Text("+250% ROI", style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w900, fontSize: 10)))
             ]
           ),
@@ -341,19 +403,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text("KES ${limit.toInt()}", style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF0C462B))),
           const SizedBox(height: 30),
 
-          // --- THE NEW FL_CHART GRAPH ---
           SizedBox(
-            height: 120, // Keeps the card from getting too tall
+            height: 120, 
             child: LineChart(
               LineChartData(
-                gridData: FlGridData(show: false), // Clean background
+                gridData: FlGridData(show: false), 
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 22,
                       getTitlesWidget: (value, meta) {
-                        // Custom labels for the crop cycle
                         switch (value.toInt()) {
                           case 0: return const Text('Plant', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold));
                           case 3: return const Text('Grow', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold));
@@ -369,22 +429,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 borderData: FlBorderData(show: false),
                 minX: 0, maxX: 6,
-                minY: 0, maxY: yieldAmt * 1.2, // Leaves breathing room at the top
+                minY: 0, maxY: yieldAmt * 1.2, 
                 lineBarsData: [
-                  // Line 1: The flat Principal Investment (Baseline)
                   LineChartBarData(
                     spots: [FlSpot(0, limit), FlSpot(6, limit)],
                     isCurved: false,
                     color: Colors.grey.withOpacity(0.4),
                     barWidth: 2,
-                    dashArray: [5, 5], // Dashed line
+                    dashArray: [5, 5], 
                     dotData: FlDotData(show: false),
                   ),
-                  // Line 2: The sweeping Growth Curve
                   LineChartBarData(
                     spots: [
                       FlSpot(0, limit),
-                      FlSpot(3, limit + ((yieldAmt - limit) * 0.25)), // Dips slightly before shooting up
+                      FlSpot(3, limit + ((yieldAmt - limit) * 0.25)), 
                       FlSpot(6, yieldAmt),
                     ],
                     isCurved: true,
@@ -395,7 +453,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     dotData: FlDotData(
                       show: true,
                       getDotPainter: (spot, percent, barData, index) {
-                        // Only show the dot at the final harvest peak
                         if (index == 2) {
                           return FlDotCirclePainter(radius: 6, color: Colors.greenAccent, strokeWidth: 2, strokeColor: const Color(0xFF0C462B));
                         }
@@ -414,13 +471,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-          // ------------------------------
-
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 20),
           
-          // Footer
           Row(
             children: [
               const Icon(Icons.auto_graph_rounded, color: Colors.green), 
@@ -455,7 +509,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 }
-
 // ==========================================
 // 3. MARKETPLACE SCREEN
 // ==========================================

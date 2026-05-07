@@ -32,29 +32,44 @@ class _AgrovetLoginScreenState extends State<AgrovetLoginScreen> {
       );
       
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String maskedPhone = data['masked_phone'];
+        try {
+          final data = jsonDecode(response.body);
+          String maskedPhone = data['masked_phone'] ?? "your number"; // Fallback added
 
-        // 2. Show OTP Dialog to the user
-        if (mounted) {
-          _showOTPDialog(tillNumber, maskedPhone);
+          // 2. Show OTP Dialog to the user
+          if (mounted) {
+            _showOTPDialog(tillNumber, maskedPhone);
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Server response error. Please try again.'), 
+              backgroundColor: Colors.red
+            ));
+          }
         }
       } else if (response.statusCode == 404) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Till not found. Please register first.'), 
-            backgroundColor: Colors.red
-          ));
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+             content: Text('Till not found. Please register first.'), 
+             backgroundColor: Colors.red
+           ));
+         }
       } else {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Server Error. Try again.'), 
-            backgroundColor: Colors.red
-          ));
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+             content: Text('Server Error. Try again.'), 
+             backgroundColor: Colors.red
+           ));
+         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Network Error. Check your connection.'), 
-        backgroundColor: Colors.red
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Network Error. Check your connection.'), 
+          backgroundColor: Colors.red
+        ));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -128,19 +143,25 @@ class _AgrovetLoginScreenState extends State<AgrovetLoginScreen> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (context) => AgrovetDashboardScreen(
-                              businessName: data['business_name'],
-                              tillNumber: data['till_number'],
-                              location: "Kenya", // Assuming location isn't critical for the dashboard view yet
+                              businessName: data['business_name'] ?? 'Merchant',
+                              tillNumber: data['till_number'] ?? tillNumber,
+                              location: data['location'] ?? "Kenya", 
                             )),
                           );
                         }
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid PIN. Try again.'), backgroundColor: Colors.red));
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid PIN. Try again.'), backgroundColor: Colors.red));
+                        }
                       }
                     } catch (e) {
-                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error.'), backgroundColor: Colors.red));
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error. Check connection.'), backgroundColor: Colors.red));
+                      }
                     } finally {
-                       setDialogState(() => isVerifying = false);
+                      if (mounted) {
+                        setDialogState(() => isVerifying = false);
+                      }
                     }
                   },
                   child: isVerifying 
@@ -373,12 +394,16 @@ class _AgrovetRegistrationScreenState extends State<AgrovetRegistrationScreen> {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Registration Successful! You can now log in."), backgroundColor: Colors.green));
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed: Till might already exist."), backgroundColor: Colors.red));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed: Till might already exist."), backgroundColor: Colors.red));
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Network Error."), backgroundColor: Colors.red));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Network Error."), backgroundColor: Colors.red));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

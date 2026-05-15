@@ -68,49 +68,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: const EdgeInsets.all(40.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Icon / Illustration Placeholder
-                        Container(
-                          height: 150,
-                          width: 150,
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            shape: BoxShape.circle,
+                    // 👇 THE FIX: Added SingleChildScrollView to prevent RenderFlex overflows on short screens
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Icon / Illustration Placeholder
+                          Container(
+                            height: 150,
+                            width: 150,
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              onboardingData[index]["icon"], 
+                              size: 80, 
+                              color: const Color(0xFF144D2F) // Oletai Green
+                            ),
                           ),
-                          child: Icon(
-                            onboardingData[index]["icon"], 
-                            size: 80, 
-                            color: const Color(0xFF144D2F) // Oletai Green
+                          const SizedBox(height: 60),
+                          
+                          // Title
+                          Text(
+                            onboardingData[index]["title"],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF111111),
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 60),
-                        
-                        // Title
-                        Text(
-                          onboardingData[index]["title"],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF111111),
-                            letterSpacing: -0.5,
+                          const SizedBox(height: 20),
+                          
+                          // Description
+                          Text(
+                            onboardingData[index]["description"],
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                              height: 1.5,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        // Description
-                        Text(
-                          onboardingData[index]["description"],
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade600,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },

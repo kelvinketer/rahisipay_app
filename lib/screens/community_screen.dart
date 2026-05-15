@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/api_service.dart'; // NEW: Imported our multi-cloud service
 
 class CommunityScreen extends StatefulWidget {
   final String farmerPhone;
@@ -25,11 +25,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
     _checkCommunityStatus();
   }
 
+  // --- 1. UPDATED: CHECK STATUS WITH FALLBACK ---
   Future<void> _checkCommunityStatus() async {
     try {
-      final response = await http.get(Uri.parse('https://rahisipay-api.onrender.com/api/v1/community/status/${widget.farmerPhone}'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      // ApiService automatically tries Render, then Railway, and returns the JSON payload
+      final data = await ApiService.get('/community/status/${widget.farmerPhone}');
+      
+      if (mounted) {
         setState(() {
           _isMember = data['has_group'] ?? false;
           if (_isMember) {
@@ -37,40 +39,42 @@ class _CommunityScreenState extends State<CommunityScreen> {
           }
           _isLoading = false;
         });
-      } else {
-        setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
+  // --- 2. UPDATED: JOIN COOPERATIVE WITH FALLBACK ---
   Future<void> _joinCommunity() async {
     if (_inviteController.text.trim().isEmpty) return;
     
     setState(() => _isJoining = true);
     
     try {
-      final response = await http.post(
-        Uri.parse('https://rahisipay-api.onrender.com/api/v1/community/join'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "phone_number": widget.farmerPhone,
-          "invite_code": _inviteController.text.trim()
-        }),
-      );
+      // ApiService automatically routes the POST request to the healthy server
+      await ApiService.post('/community/join', {
+        "phone_number": widget.farmerPhone,
+        "invite_code": _inviteController.text.trim()
+      });
       
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Successfully joined the cooperative!'), backgroundColor: Color(0xFF0C462B)));
-        _checkCommunityStatus(); // Refresh the screen
-      } else {
-        final error = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error['detail'] ?? 'Invalid code'), backgroundColor: Colors.red));
-        setState(() => _isJoining = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Successfully joined the cooperative!'), 
+          backgroundColor: Color(0xFF0C462B)
+        ));
+        _checkCommunityStatus(); // Refresh the screen to show the active group view
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network Error'), backgroundColor: Colors.red));
-      setState(() => _isJoining = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Invalid code or Network Error. Please try again.'), 
+          backgroundColor: Colors.red
+        ));
+        setState(() => _isJoining = false);
+      }
     }
   }
 
@@ -91,57 +95,60 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
 
   Widget _buildJoinGroupView() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            height: 100, width: 100,
-            decoration: BoxDecoration(color: const Color(0xFF0C462B).withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.people_alt_outlined, size: 50, color: Color(0xFF0C462B)),
-          ),
-          const SizedBox(height: 32),
-          const Text("Farm Together, Grow Together", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111111)), textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          Text(
-            "Join a local Rahisi Pay cooperative to unlock higher Smart Capital limits, lower Agrovet rates, and localized agronomy training.",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
-          ),
-          const SizedBox(height: 40),
-          Container(
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade300)),
-            child: TextField(
-              controller: _inviteController,
+    return Center(
+      // 👇 THE FIX: SingleChildScrollView allows the column to scroll on short screens
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              height: 100, width: 100,
+              decoration: BoxDecoration(color: const Color(0xFF0C462B).withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.people_alt_outlined, size: 50, color: Color(0xFF0C462B)),
+            ),
+            const SizedBox(height: 32),
+            const Text("Farm Together, Grow Together", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111111)), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            Text(
+              "Join a local Rahisi Pay cooperative to unlock higher Smart Capital limits, lower Agrovet rates, and localized agronomy training.",
               textAlign: TextAlign.center,
-              textCapitalization: TextCapitalization.characters,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2.0),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 20),
-                hintText: "ENTER INVITE CODE",
-                hintStyle: TextStyle(color: Colors.grey.shade400, letterSpacing: 2.0, fontSize: 16),
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
+            ),
+            const SizedBox(height: 40),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade300)),
+              child: TextField(
+                controller: _inviteController,
+                textAlign: TextAlign.center,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2.0),
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                  hintText: "ENTER INVITE CODE",
+                  hintStyle: TextStyle(color: Colors.grey.shade400, letterSpacing: 2.0, fontSize: 16),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity, height: 60,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0C462B), 
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
-                elevation: 0,
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity, height: 60,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0C462B), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
+                  elevation: 0,
+                ),
+                onPressed: _isJoining ? null : _joinCommunity,
+                child: _isJoining 
+                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  : const Text("Join Cooperative", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
               ),
-              onPressed: _isJoining ? null : _joinCommunity,
-              child: _isJoining 
-                ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                : const Text("Join Cooperative", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

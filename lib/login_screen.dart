@@ -1,9 +1,8 @@
 import 'screens/farmer_screens.dart';
 import 'screens/partner_screens.dart';
 import 'screens/agent_screens.dart'; 
+import 'services/api_service.dart'; // OUR NEW MULTI-CLOUD API SERVICE
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async'; 
 
 class LoginScreen extends StatefulWidget {
@@ -51,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // --- 1. SEND OTP LOGIC (STRICT UI GUARDS ADDED) ---
+  // --- 1. SEND OTP LOGIC (NOW WITH RENDER -> RAILWAY FALLBACK) ---
   Future<void> _sendOtp() async {
     String userNumber = _phoneController.text.trim();
     
@@ -67,37 +66,24 @@ class _LoginScreenState extends State<LoginScreen> {
     String fullNumber = "+254$userNumber";
     
     try {
-      final response = await http.post(
-        Uri.parse('https://rahisipay-api.onrender.com/api/v1/auth/send-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"phone_number": fullNumber}),
-      );
+      // 👇 This single line automatically attempts Render first, then falls back to Railway
+      await ApiService.post('/auth/send-otp', {"phone_number": fullNumber});
       
-      // STRICT CHECK: Only change the UI state if the backend confirms success
-      if (response.statusCode == 200) {
-        if (mounted) {
-          setState(() => _isOtpSent = true); 
-          _startResendTimer(); 
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Secure PIN sent via SMS'), 
-            backgroundColor: Color(0xFF144D2F)
-          ));
-        }
-      } else {
-        // Fallback: Ensure the OTP screen does NOT open on failure
-        if (mounted) {
-          setState(() => _isOtpSent = false); 
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Failed to send SMS. Please try again.'), 
-            backgroundColor: Colors.red
-          ));
-        }
+      // If we reach here, one of the servers successfully sent the OTP
+      if (mounted) {
+        setState(() => _isOtpSent = true); 
+        _startResendTimer(); 
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Secure PIN sent via SMS'), 
+          backgroundColor: Color(0xFF144D2F)
+        ));
       }
     } catch (e) {
+      // If we reach here, BOTH servers failed or the network is totally down
       if (mounted) {
         setState(() => _isOtpSent = false); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Network Error: Check Server Connection'), 
+          content: Text('Failed to send SMS. Please try again.'), 
           backgroundColor: Colors.red
         ));
       }
@@ -106,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- 2. VERIFY OTP LOGIC ---
+  // --- 2. VERIFY OTP LOGIC (NOW WITH RENDER -> RAILWAY FALLBACK) ---
   Future<void> _verifyOtp() async {
     if (_otpController.text.isEmpty) return;
 
@@ -114,35 +100,24 @@ class _LoginScreenState extends State<LoginScreen> {
     String fullNumber = "+254${_phoneController.text.trim()}";
     
     try {
-      final response = await http.post(
-        Uri.parse('https://rahisipay-api.onrender.com/api/v1/auth/verify-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"phone_number": fullNumber, "otp_code": _otpController.text}),
-      );
+      // 👇 Automatically routes to the healthy server
+      final data = await ApiService.post('/auth/verify-otp', {
+        "phone_number": fullNumber, 
+        "otp_code": _otpController.text
+      });
       
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        if (mounted) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(
-            farmerPhone: fullNumber, 
-            trustScore: (data['score'] ?? 0).toDouble(), 
-            creditLimit: data['limit'] ?? 0,
-            isProfileComplete: data['is_new_user'] == false, 
-          )));
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Invalid PIN.'), 
-            backgroundColor: Colors.red
-          ));
-        }
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(
+          farmerPhone: fullNumber, 
+          trustScore: (data['score'] ?? 0).toDouble(), 
+          creditLimit: data['limit'] ?? 0,
+          isProfileComplete: data['is_new_user'] == false, 
+        )));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Network Error. Check your connection.'), 
+          content: Text('Invalid PIN or Network Error.'), 
           backgroundColor: Colors.red
         ));
       }
@@ -184,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // --- OLETAI LOGO UPDATE ---
+                      // --- OLETAI LOGO ---
                       Container(
                         height: 85.0, 
                         width: 85.0, 

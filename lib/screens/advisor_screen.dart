@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; 
 import 'dart:convert'; 
-import 'package:image_picker/image_picker.dart'; // NEW: For accessing the camera
-import 'dart:io'; // NEW: For handling file paths
+import 'package:image_picker/image_picker.dart'; 
+import 'dart:io'; 
+import '../services/api_service.dart'; // NEW: Imported our multi-cloud service
 
 class FarmAdvisorScreen extends StatefulWidget {
   final String farmerPhone;
@@ -10,20 +11,17 @@ class FarmAdvisorScreen extends StatefulWidget {
   const FarmAdvisorScreen({super.key, required this.farmerPhone});
 
   @override
-
   State<FarmAdvisorScreen> createState() => _FarmAdvisorScreenState();
 }
 
 class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
   final TextEditingController _chatController = TextEditingController();
-  // Updated list to handle optional 'imagePath' for multimodal messages
   final List<Map<String, dynamic>> _messages = [];
   bool _isTyping = false;
 
   @override
   void initState() {
     super.initState();
-    // The initial greeting
     _messages.add({
       "isUser": false,
       "text": "Hello! I am your Oletai Farm Advisor. I see you are farming in Kiambu County. The weather in Juja is expected to be dry this week. How can I help you maximize your yield today?",
@@ -31,7 +29,7 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     });
   }
 
-  // --- STANDARD TEXT MESSAGE ---
+  // --- 1. UPDATED: STANDARD TEXT MESSAGE WITH FALLBACK ---
   void _sendMessage() async {
     if (_chatController.text.trim().isEmpty) return;
 
@@ -44,27 +42,17 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://rahisipay-api.onrender.com/api/v1/advisor/chat'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "farmer_phone": widget.farmerPhone,
-          "message": userText
-        }),
-      );
+      // Automatically uses the multi-cloud failover logic
+      final data = await ApiService.post('/advisor/chat', {
+        "farmer_phone": widget.farmerPhone,
+        "message": userText
+      });
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String aiReply = data['reply'];
-        
-        if (mounted) {
-          setState(() {
-            _isTyping = false;
-            _messages.add({"isUser": false, "text": aiReply, "imagePath": null});
-          });
-        }
-      } else {
-        throw Exception("Server Error: ${response.statusCode}");
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add({"isUser": false, "text": data['reply'], "imagePath": null});
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -76,55 +64,77 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     }
   }
 
-  // --- UPDATED: MULTIMODAL IMAGE DIAGNOSIS ---
+  // --- 2. UPDATED: MULTIMODAL IMAGE DIAGNOSIS WITH FALLBACK ---
   Future<void> _pickAndDiagnose() async {
     final ImagePicker picker = ImagePicker();
-    // 1. Open the camera
     final XFile? photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
     
-    if (photo == null) return; // User canceled the camera
+    if (photo == null) return; 
 
-    // 2. Add the image to the chat UI immediately
     setState(() {
       _messages.add({
         "isUser": true, 
-        "text": "Please analyze this crop.", // Default text to accompany the image
+        "text": "Please analyze this crop.", 
         "imagePath": photo.path 
       });
       _isTyping = true;
     });
 
     try {
-      // 3. Prepare the Multi-part upload to the new backend endpoint
+      // Try the Primary Render Server First
       var request = http.MultipartRequest(
         'POST', 
-        Uri.parse('https://rahisipay-api.onrender.com/api/v1/advisor/diagnose')
+        Uri.parse('${ApiService.primaryApi}/advisor/diagnose')
       );
       
       request.fields['farmer_phone'] = widget.farmerPhone;
       request.files.add(await http.MultipartFile.fromPath('image', photo.path));
 
-      // 4. Send it to the Render server
-      var streamedResponse = await request.send();
+      var streamedResponse = await request.send().timeout(const Duration(seconds: 10));
       var response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (response.statusCode != 200) throw Exception("Primary server rejected the upload");
+      
+      final data = jsonDecode(response.body);
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add({"isUser": false, "text": data['diagnosis'], "imagePath": null});
+        });
+      }
+      
+    } catch (e) {
+      print('⚠️ Render image upload failed. Rerouting to Railway backup...');
+      
+      try {
+        // Fallback to the Railway Server
+        var fallbackRequest = http.MultipartRequest(
+          'POST', 
+          Uri.parse('${ApiService.backupApi}/advisor/diagnose')
+        );
+        
+        fallbackRequest.fields['farmer_phone'] = widget.farmerPhone;
+        fallbackRequest.files.add(await http.MultipartFile.fromPath('image', photo.path));
+
+        var fallbackStream = await fallbackRequest.send().timeout(const Duration(seconds: 15));
+        var fallbackResponse = await http.Response.fromStream(fallbackStream);
+
+        if (fallbackResponse.statusCode != 200) throw Exception("Backup server rejected the upload");
+
+        final data = jsonDecode(fallbackResponse.body);
         if (mounted) {
           setState(() {
             _isTyping = false;
             _messages.add({"isUser": false, "text": data['diagnosis'], "imagePath": null});
           });
         }
-      } else {
-        throw Exception("Server Error");
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isTyping = false;
-          _messages.add({"isUser": false, "text": "Image upload failed. Please ensure you have a strong network connection.", "imagePath": null});
-        });
+      } catch (backupError) {
+        if (mounted) {
+          setState(() {
+            _isTyping = false;
+            _messages.add({"isUser": false, "text": "Image upload failed. Both cloud servers are unreachable right now. Please check your network connection.", "imagePath": null});
+          });
+        }
       }
     }
   }
@@ -147,7 +157,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
       ),
       body: Column(
         children: [
-          // Chat Messages Area
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(20),
@@ -159,7 +168,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
             ),
           ),
           
-          // Typing Indicator
           if (_isTyping)
             Padding(
               padding: const EdgeInsets.only(left: 24, bottom: 8),
@@ -169,7 +177,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
               ),
             ),
 
-          // Input Area
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -223,7 +230,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
     );
   }
 
-  // --- UPDATED: RENDER IMAGE INSIDE CHAT BUBBLE ---
   Widget _buildChatBubble(String text, bool isUser, String? imagePath) {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -246,7 +252,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // If the message has an image, render it first
             if (imagePath != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -258,7 +263,6 @@ class _FarmAdvisorScreenState extends State<FarmAdvisorScreen> {
                   ),
                 ),
               ),
-            // Then render the text
             Text(
               text,
               style: TextStyle(

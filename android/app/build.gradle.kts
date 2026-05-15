@@ -17,7 +17,7 @@ plugins {
 
 android {
     namespace = "com.oletaiagro.rahisiagropay"
-    compileSdk = 34  // <--- FORCED TO 34 HERE 🚀
+    compileSdk = 36  // <--- FORCED TO 36 HERE 🚀
     
     // The exact NDK version required by flutter_native_splash
     ndkVersion = "27.0.12077973"
@@ -44,7 +44,7 @@ android {
     defaultConfig {
         applicationId = "com.oletaiagro.rahisiagropay"
         minSdk = 24  
-        targetSdk = 34 // <--- FORCED TO 34 HERE TO MATCH 🚀
+        targetSdk = 36 // <--- BUMP THIS TO 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

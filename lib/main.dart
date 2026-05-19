@@ -14,10 +14,37 @@ class RahisiAgroPayApp extends StatelessWidget {
     return MaterialApp(
       title: 'Oletai Agri Finance',
       theme: ThemeData(
-        primaryColor: const Color(0xFF0C462B), 
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0C462B)),
+        // 1. Lock in the official Oletai Green globally
+        primaryColor: const Color(0xFF144D2F), 
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF144D2F),
+          primary: const Color(0xFF144D2F),
+          secondary: const Color(0xFF0A2E1A), // Darker accent shade
+        ),
         fontFamily: 'Roboto', 
-        scaffoldBackgroundColor: const Color(0xFFF4F7F6),
+        
+        // 2. Set a clean, unified background for all screens
+        scaffoldBackgroundColor: Colors.white,
+
+        // 3. Global Button Styling so you don't have to rewrite it on every page
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF144D2F),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+
+        // 4. Smooth Screen Transitions (iOS style slide for all platforms)
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
       ),
       // --- THIS IS THE MAGIC SWITCH ---
       home: const OnboardingScreen(), 

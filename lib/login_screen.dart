@@ -50,15 +50,36 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // --- NEW: UNIVERSAL FEEDBACK POP-UP ---
+  void _showFeedback(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle_outline,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red.shade800 : const Color(0xFF144D2F),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   // --- 1. SEND OTP LOGIC (NOW WITH RENDER -> RAILWAY FALLBACK) ---
   Future<void> _sendOtp() async {
     String userNumber = _phoneController.text.trim();
     
     if (userNumber.length != 9) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please enter a valid 9-digit number after +254'), 
-        backgroundColor: Colors.orange
-      ));
+      _showFeedback('Please enter a valid 9-digit number after +254', isError: true);
       return;
     }
 
@@ -66,26 +87,19 @@ class _LoginScreenState extends State<LoginScreen> {
     String fullNumber = "+254$userNumber";
     
     try {
-      // 👇 This single line automatically attempts Render first, then falls back to Railway
+      // 👇 Automatically attempts Render first, then falls back to Railway
       await ApiService.post('/auth/send-otp', {"phone_number": fullNumber});
       
-      // If we reach here, one of the servers successfully sent the OTP
       if (mounted) {
         setState(() => _isOtpSent = true); 
         _startResendTimer(); 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Secure PIN sent via SMS'), 
-          backgroundColor: Color(0xFF144D2F)
-        ));
+        _showFeedback('Secure PIN sent via SMS');
       }
     } catch (e) {
-      // If we reach here, BOTH servers failed or the network is totally down
+      // 👇 Network Failure or Server Crash Catch
       if (mounted) {
         setState(() => _isOtpSent = false); 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Failed to send SMS. Please try again.'), 
-          backgroundColor: Colors.red
-        ));
+        _showFeedback('Network Error. Check your internet connection and try again.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -94,19 +108,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // --- 2. VERIFY OTP LOGIC (NOW WITH RENDER -> RAILWAY FALLBACK) ---
   Future<void> _verifyOtp() async {
-    if (_otpController.text.isEmpty) return;
+    if (_otpController.text.isEmpty) {
+      _showFeedback('Please enter the 4-digit PIN.', isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
     String fullNumber = "+254${_phoneController.text.trim()}";
     
     try {
-      // 👇 Automatically routes to the healthy server
       final data = await ApiService.post('/auth/verify-otp', {
         "phone_number": fullNumber, 
         "otp_code": _otpController.text
       });
       
       if (mounted) {
+        _showFeedback('Identity Verified!');
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(
           farmerPhone: fullNumber, 
           trustScore: (data['score'] ?? 0).toDouble(), 
@@ -116,10 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Invalid PIN or Network Error.'), 
-          backgroundColor: Colors.red
-        ));
+        _showFeedback('Invalid PIN or Network Error. Please check your connection.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

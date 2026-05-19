@@ -22,7 +22,7 @@ dependencies:
   
   # --- NEW: QR CODE ECOSYSTEM ---
   qr_flutter: ^4.1.0        # Generates the QR codes for the Agrovets
-  mobile_scanner: ^6.0.0    # Allows the Farmer to scan the QR codes
+  mobile_scanner: ^7.2.0    # Allows the Farmer to scan the QR codes
   fl_chart: ^1.1.1
   image_picker: ^1.2.1
 
@@ -32,7 +32,7 @@ dev_dependencies:
 
   # The "flutter_lints" package below contains a set of recommended lints.
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: ^0.13.1   # Generates the App Icon
+  flutter_launcher_icons: ^0.14.4   # Generates the App Icon
   flutter_native_splash: ^2.3.6     # Generates the Splash Screen
 
 # The following section is specific to Flutter packages.

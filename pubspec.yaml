@@ -25,6 +25,8 @@ dependencies:
   mobile_scanner: ^7.2.0    # Allows the Farmer to scan the QR codes
   fl_chart: ^1.1.1
   image_picker: ^1.2.1
+  firebase_core: ^4.9.0
+  firebase_analytics: ^12.4.1
 
 dev_dependencies:
   flutter_test:

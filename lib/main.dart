@@ -1,8 +1,18 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart'; // Your existing login screen
 
-void main() {
+void main() async {
+  // 1. Ensure Flutter is fully initialized before calling native code like Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 2. Wake up Firebase using your specific auto-generated credentials
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const RahisiAgroPayApp());
 }
 

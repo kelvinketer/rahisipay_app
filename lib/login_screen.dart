@@ -1,3 +1,10 @@
+Here is your fully updated `login_screen.dart` file.
+
+I have seamlessly integrated the "Create Account" link right below the "Secure Login" button inside the `_buildPhoneInputPhase()` function. I also adjusted the `SizedBox` heights slightly so the visual balance between the login button, the new link, and the "Partner Access" divider feels natural and uncluttered.
+
+You can copy and replace your entire `login_screen.dart` file with this:
+
+```dart
 import 'screens/farmer_screens.dart';
 import 'screens/partner_screens.dart';
 import 'screens/agent_screens.dart'; 
@@ -287,8 +294,37 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         
+        // --- NEW: Create Account Link ---
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Don't have an account? ",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                // TODO: Route to the Farmer KYC Registration Screen
+                print("Create Account Clicked!"); 
+              },
+              child: const Text(
+                "Create Account",
+                style: TextStyle(
+                  color: Color(0xFF144D2F), // The official Oletai Green
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+
         // --- NEW PARTNER ACCESS SECTION ---
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
         Row(
           children: [
             Expanded(child: Divider(color: Colors.grey.shade300)),
@@ -420,3 +456,5 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
+```

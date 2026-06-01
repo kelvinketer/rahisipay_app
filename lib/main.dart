@@ -47,19 +47,10 @@ class RahisiAgroPayApp extends StatelessWidget {
             ),
           ),
         ),
-
-        // 4. Smooth Screen Transitions (iOS style slide for all platforms)
-        // 👇 THE REAL FIX: Removed 'const' entirely from this block
-        pageTransitionsTheme: PageTransitionsTheme(
-          builders: <TargetPlatform, PageTransitionsBuilder>{
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          },
-        ),
       ),
       // --- THIS IS THE MAGIC SWITCH ---
       home: const OnboardingScreen(), 
       debugShowCheckedModeBanner: false,
     );
   }
-} 
+}

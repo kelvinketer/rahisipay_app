@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
 
-# 👇 NEW: Silences the warning and opts into the new Node 24 servers early
+# Silences the warning and opts into the new Node 24 servers early
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -26,11 +26,24 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
         
+      # 👇 1. Builds the APK for local testing (BlueStacks)
       - name: Build APK
         run: flutter build apk --debug
         
-      - name: Upload Artifact
+      # 👇 2. Builds the App Bundle for the Google Play Store
+      - name: Build App Bundle
+        run: flutter build appbundle
+        
+      # 👇 3. Uploads the APK to the GitHub dashboard
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: rahisipay-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+
+      # 👇 4. Uploads the AAB to the GitHub dashboard
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rahisipay-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab

@@ -59,3 +59,6 @@ android/app/upload-keystore.jks
 # Firebase/Google Services configuration (often contains sensitive API keys)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+
+# Keystore base 64 encoded file (for CI/CD pipelines)
+keystore_base64.txt

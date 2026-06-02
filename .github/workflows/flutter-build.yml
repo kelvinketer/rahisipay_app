@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main" ]
 
-# Silences the warning and opts into the new Node 24 servers early
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -25,23 +24,38 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+
+      # 👇 NEW: Decodes the Keystore back into a binary file
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo $KEYSTORE_BASE64 | base64 --decode > android/app/upload-keystore.jks
+
+      # 👇 NEW: Creates the properties file with your passwords for Gradle to read
+      - name: Create key.properties
+        env:
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "storePassword=$STORE_PASSWORD" > android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
         
-      # 👇 1. Builds the APK for local testing (BlueStacks)
-      - name: Build APK
+      - name: Build Debug APK (For local BlueStacks testing)
         run: flutter build apk --debug
         
-      # 👇 2. Builds the App Bundle for the Google Play Store
-      - name: Build App Bundle
+      # 👇 NEW: Builds the secure, signed production bundle for Google Play
+      - name: Build Release App Bundle
         run: flutter build appbundle
         
-      # 👇 3. Uploads the APK to the GitHub dashboard
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: rahisipay-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
 
-      # 👇 4. Uploads the AAB to the GitHub dashboard
       - name: Upload AAB Artifact
         uses: actions/upload-artifact@v4
         with:

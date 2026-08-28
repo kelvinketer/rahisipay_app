@@ -75,7 +75,7 @@ class AcademyScreen extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: isLocked ? Border.all(color: Colors.grey.shade300) : null,
-          boxShadow: isLocked ? [] : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+          boxShadow: isLocked ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +192,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       height: 6,
                       decoration: BoxDecoration(
-                        color: index <= _currentIndex ? Colors.lightGreenAccent : Colors.white.withOpacity(0.2),
+                        color: index <= _currentIndex ? Colors.lightGreenAccent : Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),

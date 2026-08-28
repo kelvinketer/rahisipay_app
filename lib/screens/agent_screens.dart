@@ -183,7 +183,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
             // Commission Card
             Container(
               width: double.infinity, padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF0A2E1A), Color(0xFF144D2F)]), borderRadius: BorderRadius.circular(32), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))]),
+              decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF0A2E1A), Color(0xFF144D2F)]), borderRadius: BorderRadius.circular(32), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))]),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

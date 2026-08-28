@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class DealerRegistrationScreen extends StatefulWidget {
-  const DealerRegistrationScreen({Key? key}) : super(key: key);
+  const DealerRegistrationScreen({super.key});
 
   @override
   State<DealerRegistrationScreen> createState() => _DealerRegistrationScreenState();

@@ -112,7 +112,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(color: isSelected ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(12), boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : []),
+                decoration: BoxDecoration(color: isSelected ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(12), boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)] : []),
                 child: Center(child: Text(type, style: TextStyle(color: isSelected ? const Color(0xFF144D2F) : Colors.grey[600], fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500))),
               ),
             ),
@@ -330,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))]
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))]
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -445,7 +445,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white, 
         borderRadius: BorderRadius.circular(32), 
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, 10))]
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, 10))]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,7 +492,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   LineChartBarData(
                     spots: [FlSpot(0, limit), FlSpot(6, limit)],
                     isCurved: false,
-                    color: Colors.grey.withOpacity(0.4),
+                    color: Colors.grey.withValues(alpha: 0.4),
                     barWidth: 2,
                     dashArray: [5, 5], 
                     dotData: FlDotData(show: false),
@@ -520,7 +520,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
-                        colors: [const Color(0xFF144D2F).withOpacity(0.2), Colors.transparent],
+                        colors: [const Color(0xFF144D2F).withValues(alpha: 0.2), Colors.transparent],
                         begin: Alignment.topCenter, end: Alignment.bottomCenter,
                       ),
                     ),
@@ -556,7 +556,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     child: Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)]), borderRadius: BorderRadius.circular(24)), child: const Row(children: [Icon(Icons.stars, color: Colors.orange, size: 40), SizedBox(width: 20), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Verify Profile", style: TextStyle(fontWeight: FontWeight.w900)), Text("Unlock KES 50k instantly.")])), Icon(Icons.arrow_forward_ios, size: 14)])),
   );
 
-  Widget _buildActionCircle(IconData icon, String label, VoidCallback onTap) => GestureDetector(onTap: onTap, child: Column(children: [Container(height: 64, width: 64, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15)]), child: Icon(icon, color: const Color(0xFF144D2F))), const SizedBox(height: 10), Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))]));
+  Widget _buildActionCircle(IconData icon, String label, VoidCallback onTap) => GestureDetector(onTap: onTap, child: Column(children: [Container(height: 64, width: 64, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15)]), child: Icon(icon, color: const Color(0xFF144D2F))), const SizedBox(height: 10), Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))]));
 
   Widget _buildTransactionList() {
     if (_isLoading) return const Center(child: CircularProgressIndicator());

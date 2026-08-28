@@ -284,7 +284,7 @@ class AgrovetDashboardScreen extends StatelessWidget {
               width: double.infinity, padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: Colors.white, borderRadius: BorderRadius.circular(24), 
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))]
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))]
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

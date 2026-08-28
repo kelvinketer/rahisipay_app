@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import '../services/api_service.dart'; // NEW: Imported our multi-cloud service
 
 class CommunityScreen extends StatefulWidget {
@@ -105,7 +104,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
           children: [
             Container(
               height: 100, width: 100,
-              decoration: BoxDecoration(color: const Color(0xFF0C462B).withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: const Color(0xFF0C462B).withValues(alpha: 0.1), shape: BoxShape.circle),
               child: const Icon(Icons.people_alt_outlined, size: 50, color: Color(0xFF0C462B)),
             ),
             const SizedBox(height: 32),
@@ -167,7 +166,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFF0A2E1A), Color(0xFF144D2F)]),
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))],
+              boxShadow: [BoxShadow(color: Colors.green.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10))],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +176,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
                       child: const Text("Verified Co-Op", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                     const Icon(Icons.verified, color: Colors.white, size: 20),

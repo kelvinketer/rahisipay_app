@@ -6,7 +6,7 @@ description: "The official financial and agribusiness platform for Oletai Agro G
 publish_to: 'none'
 
 # The following defines the version and build number for your application.
-version: 1.0.0+2
+version: 1.0.1+3
 
 environment:
   sdk: ^3.10.7

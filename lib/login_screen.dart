@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- 1. SEND OTP LOGIC (NOW WITH RENDER -> RAILWAY FALLBACK) ---
+  // --- 1. SEND OTP LOGIC ---
   Future<void> _sendOtp() async {
     String userNumber = _phoneController.text.trim();
     
@@ -83,11 +83,17 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // 👇 STATIC BYPASS: Intercept the Google Reviewer Test Account
+    if (userNumber == "700000000") {
+      setState(() => _isOtpSent = true);
+      _showFeedback('Test account detected. Enter PIN 1234.');
+      return;
+    }
+
     setState(() => _isLoading = true);
     String fullNumber = "+254$userNumber";
     
     try {
-      // 👇 Automatically attempts Render first, then falls back to Railway
       await ApiService.post('/auth/send-otp', {"phone_number": fullNumber});
       
       if (mounted) {
@@ -96,7 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _showFeedback('Secure PIN sent via SMS');
       }
     } catch (e) {
-      // 👇 Network Failure or Server Crash Catch
       if (mounted) {
         setState(() => _isOtpSent = false); 
         _showFeedback('Network Error. Check your internet connection and try again.', isError: true);
@@ -106,15 +111,29 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- 2. VERIFY OTP LOGIC (NOW WITH RENDER -> RAILWAY FALLBACK) ---
+  // --- 2. VERIFY OTP LOGIC ---
   Future<void> _verifyOtp() async {
     if (_otpController.text.isEmpty) {
       _showFeedback('Please enter the 4-digit PIN.', isError: true);
       return;
     }
 
+    String userNumber = _phoneController.text.trim();
+    String fullNumber = "+254$userNumber";
+
+    // 👇 STATIC BYPASS: Authenticate the Google Reviewer Test Account directly
+    if (userNumber == "700000000" && _otpController.text.trim() == "1234") {
+      _showFeedback('Reviewer Identity Verified!');
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(
+        farmerPhone: fullNumber, 
+        trustScore: 100.0, // Pre-populated test score
+        creditLimit: 50000, // Pre-populated test limit
+        isProfileComplete: true, 
+      )));
+      return;
+    }
+
     setState(() => _isLoading = true);
-    String fullNumber = "+254${_phoneController.text.trim()}";
     
     try {
       final data = await ApiService.post('/auth/verify-otp', {

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/onboarding_screen.dart';
@@ -8,10 +10,13 @@ void main() async {
   // 1. Ensure Flutter is fully initialized before calling native code like Firebase
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 2. Wake up Firebase using your specific auto-generated credentials
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // 2. Wake up Firebase using your specific auto-generated credentials, 
+  // but explicitly skip initialization when running as a Linux desktop app.
+  if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
 
   runApp(const RahisiAgroPayApp());
 }
